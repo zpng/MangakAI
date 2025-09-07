@@ -113,8 +113,8 @@ def regenerate_and_replace_interface(panel_number: int, modification_request: st
         return f"Error regenerating panel: {e}", None, []
 
 def create_gradio_interface():
-    with gr.Blocks(title="Manga Generator", theme=gr.themes.Soft()) as demo:
-        gr.Markdown("# 📚 Story to Manga Generator")
+    with gr.Blocks(title="MangakAI", theme=gr.themes.Soft()) as demo:
+        gr.Markdown("# 📚 MangakAI")
         gr.Markdown("Transform your stories into manga panels with AI and custom style preferences!")
         
         with gr.Tab("📝 Generate Manga"):
