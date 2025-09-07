@@ -1,0 +1,13 @@
+[project]
+name = "MangakAI"
+version = "0.1.0"
+description = "Transform your imagination into visual stories with the power of AI!"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "google-genai>=1.33.0",
+    "gradio>=5.44.1",
+    "pillow>=11.3.0",
+    "python-dotenv>=1.1.1",
+    "reportlab>=4.4.3",
+]
