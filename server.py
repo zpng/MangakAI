@@ -184,19 +184,11 @@ async def generate_manga(request: GenerateMangaRequest):
                     api_path = f"/static/{relative_path}"
                     api_gallery_images.append(api_path)
         
-        # Convert scene_descriptions list to string
-        scene_descriptions_str = ""
-        if scene_descriptions:
-            if isinstance(scene_descriptions, list):
-                scene_descriptions_str = "\n\n".join(scene_descriptions)
-            else:
-                scene_descriptions_str = str(scene_descriptions)
-        
         return MangaResponse(
             success=True,
             message="Manga generated successfully!",
             gallery_images=api_gallery_images,
-            scene_descriptions=scene_descriptions_str
+            scene_descriptions=scene_descriptions or ""
         )
     
     except Exception as e:
@@ -257,19 +249,11 @@ async def generate_manga_from_file(
                         api_path = f"/static/{relative_path}"
                         api_gallery_images.append(api_path)
             
-            # Convert scene_descriptions list to string
-            scene_descriptions_str = ""
-            if scene_descriptions:
-                if isinstance(scene_descriptions, list):
-                    scene_descriptions_str = "\n\n".join(scene_descriptions)
-                else:
-                    scene_descriptions_str = str(scene_descriptions)
-            
             return MangaResponse(
                 success=True,
                 message="Manga generated successfully from file!",
                 gallery_images=api_gallery_images,
-                scene_descriptions=scene_descriptions_str
+                scene_descriptions=scene_descriptions or ""
             )
         
         finally:
@@ -284,9 +268,33 @@ async def generate_manga_from_file(
             scene_descriptions=""
         )
 
+@app.get("/api/session-status")
+async def get_session_status():
+    """Get the current session status."""
+    try:
+        generator = get_global_generator()
+        has_active_session = bool(generator.current_generation['generated_images'])
+        panel_count = len(generator.current_generation['generated_images']) if has_active_session else 0
+        
+        return {
+            "success": True,
+            "has_active_session": has_active_session,
+            "panel_count": panel_count,
+            "message": f"Active session with {panel_count} panels" if has_active_session else "No active session"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "has_active_session": False,
+            "panel_count": 0,
+            "message": f"Error checking session status: {str(e)}"
+        }
+
 @app.post("/api/regenerate-panel", response_model=PanelResponse)
 async def regenerate_panel(
-    request: RegeneratePanelRequest,
+    panel_number: int = Form(...),
+    modification_request: str = Form(...),
+    replace_original: bool = Form(False),
     reference_image: Optional[UploadFile] = File(None)
 ):
     """Regenerate a specific panel with modifications"""
@@ -299,13 +307,13 @@ async def regenerate_panel(
                 reference_path = temp_file.name
         
         try:
-            if request.replace_original:
+            if replace_original:
                 # Use the regenerate and replace interface
                 from app import regenerate_and_replace_interface
                 status, new_image_path, updated_gallery = regenerate_and_replace_interface(
-                    panel_number=request.panel_number,
-                    modification_request=request.modification_request,
-                    replace_original=request.replace_original,
+                    panel_number=panel_number,
+                    modification_request=modification_request,
+                    replace_original=replace_original,
                     reference_image=reference_path
                 )
                 
@@ -331,9 +339,9 @@ async def regenerate_panel(
                 )
             else:
                 # Use the regular regenerate interface
-                new_image_path = regenerate_panel_interface(
-                    panel_number=request.panel_number,
-                    modification_request=request.modification_request,
+                status_message, new_image_path = regenerate_panel_interface(
+                    panel_number=panel_number,
+                    modification_request=modification_request,
                     reference_image=reference_path
                 )
                 
@@ -344,7 +352,7 @@ async def regenerate_panel(
                 
                 return PanelResponse(
                     success=True,
-                    message=f"Panel {request.panel_number} regenerated successfully!",
+                    message=status_message,
                     regenerated_image=api_new_image,
                     updated_gallery=[]
                 )

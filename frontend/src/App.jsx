@@ -147,10 +147,15 @@ function App() {
   const regeneratePanel = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/regenerate-panel`, {
-        panel_number: panelNumber,
-        modification_request: modificationRequest,
-        replace_original: replaceOriginal
+      const formData = new FormData();
+      formData.append('panel_number', panelNumber);
+      formData.append('modification_request', modificationRequest);
+      formData.append('replace_original', replaceOriginal);
+
+      const response = await axios.post(`${API_BASE_URL}/api/regenerate-panel`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       if (response.data.success) {

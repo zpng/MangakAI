@@ -48,6 +48,60 @@ class MangaGenerator:
             'user_preferences': {},
             'current_template_path': self.template_path
         }
+        
+        # Try to restore session from existing files
+        self.restore_session_from_files()
+
+    def restore_session_from_files(self):
+        """Restore session state from existing generated files in the output directory."""
+        try:
+            # Look for existing scene files
+            scene_files = []
+            for i in range(1, 11):  # Check for up to 10 scenes
+                scene_path = os.path.join(self.output_dir, f"scene{i}.png")
+                if os.path.exists(scene_path):
+                    scene_files.append((i, scene_path))
+                else:
+                    break  # Stop at first missing scene to maintain sequence
+            
+            if scene_files:
+                # Restore generated_images structure
+                generated_images = []
+                scenes = []
+                
+                for scene_num, scene_path in scene_files:
+                    # Try to load the image
+                    try:
+                        image = Image.open(scene_path)
+                        generated_images.append({
+                            'scene_number': scene_num,
+                            'scene_text': f"Scene {scene_num}",  # Placeholder text
+                            'image_path': scene_path,
+                            'image': image,
+                            'version': 1
+                        })
+                        scenes.append(f"Scene {scene_num}")  # Placeholder scene text
+                    except Exception as e:
+                        print(f"Warning: Could not load scene {scene_num}: {e}")
+                        continue
+                
+                if generated_images:
+                    # Create a new chat session for potential regenerations
+                    chat = self.image_gen_client.chats.create(model=self.image_gen_model_name)
+                    
+                    # Update current generation
+                    self.current_generation.update({
+                        'scenes': scenes,
+                        'generated_images': generated_images,
+                        'chat': chat,
+                        'user_preferences': {}
+                    })
+                    
+                    print(f"Restored session with {len(generated_images)} panels")
+                    
+        except Exception as e:
+            print(f"Warning: Could not restore session from files: {e}")
+            # Continue with empty session
 
     def save_user_template(self, uploaded_file):
         """Save user uploaded template and return the path."""
