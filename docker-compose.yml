@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - TEMPLATE_PATH=data/templates/template.png
+      - OUTPUT_DIR=data/output
+      - STORIES_DIR=data/stories
+      - IMAGE_MODEL_NAME=gemini-2.5-flash-image-preview
+      - SCENE_MODEL_NAME=gemini-2.0-flash
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+    networks:
+      - mangakai-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - mangakai-network
+    restart: unless-stopped
+
+networks:
+  mangakai-network:
+    driver: bridge
+
+volumes:
+  manga_data:
+    driver: local

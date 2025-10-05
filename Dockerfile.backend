@@ -1,0 +1,31 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY pyproject.toml ./
+COPY uv.lock ./
+
+# Install UV and dependencies
+RUN pip install uv
+RUN uv pip install --system -e .
+
+# Copy application code
+COPY server.py ./
+COPY manga.py ./
+COPY utils.py ./
+COPY data/ ./data/
+
+# Create necessary directories
+RUN mkdir -p data/output data/stories data/templates
+
+# Expose port
+EXPOSE 8000
+
+# Run the application
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
