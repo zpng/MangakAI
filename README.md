@@ -28,15 +28,60 @@ Transform your stories into manga panels with AI and custom style preferences!
 - Node.js 20.19+ 或 22.12+
 - npm 或 yarn
 
-## 安装和运行
+## 快速开始 (推荐使用 Makefile)
 
-### 1. 后端设置
+### 1. 一键安装和启动
 
 ```bash
 # 克隆项目
 git clone <repository-url>
 cd MangakAI
 
+# 设置环境变量
+cp .env.example .env
+# 编辑 .env 文件，添加你的 GEMINI_API_KEY
+
+# 安装所有依赖
+make install
+
+# 启动前后端服务器
+make dev
+```
+
+### 2. 常用 Makefile 命令
+
+```bash
+# 查看所有可用命令
+make help
+
+# 安装依赖
+make install              # 安装前后端所有依赖
+make install-backend      # 仅安装后端依赖
+make install-frontend     # 仅安装前端依赖
+
+# 开发环境
+make dev                  # 同时启动前后端 (推荐)
+make dev-backend          # 仅启动后端 (端口 8000)
+make dev-frontend         # 仅启动前端 (端口 5173)
+
+# 构建和部署
+make build                # 构建前端生产版本
+make docker-up            # 使用 Docker Compose 启动
+make docker-down          # 停止 Docker 服务
+
+# 工具命令
+make status               # 查看服务运行状态
+make stop                 # 停止所有服务
+make clean                # 清理构建文件
+```
+
+### 3. 手动安装和运行
+
+如果不使用 Makefile，也可以手动执行：
+
+#### 后端设置
+
+```bash
 # 创建虚拟环境 (使用 uv)
 uv venv
 source .venv/bin/activate  # Linux/Mac
@@ -46,17 +91,13 @@ source .venv/bin/activate  # Linux/Mac
 # 安装依赖
 uv pip install -e .
 
-# 设置环境变量
-cp .env.example .env
-# 编辑 .env 文件，添加你的 GEMINI_API_KEY
-
 # 启动后端服务器
 uvicorn server:app --host 0.0.0.0 --port 8000
 ```
 
 后端服务器将在 http://localhost:8000 运行
 
-### 2. 前端设置
+#### 前端设置
 
 ```bash
 # 进入前端目录
