@@ -25,6 +25,7 @@ function App() {
   const [examples, setExamples] = useState({});
   const [selectedExample, setSelectedExample] = useState('');
   const [exampleData, setExampleData] = useState(null);
+  const [selectedPanelIndex, setSelectedPanelIndex] = useState(0);
   
   // Regeneration states
   const [panelNumber, setPanelNumber] = useState(1);
@@ -64,20 +65,41 @@ function App() {
       }
     } catch (error) {
       console.error('Error fetching examples:', error);
+      // Fallback to mock data when API is not available
+      const mockExamples = ['The Little Lantern', 'The Paper Kite', 'The Stray Puppy'];
+      setExamples(mockExamples);
+      setSelectedExample(mockExamples[0]);
+      fetchExampleData(mockExamples[0]);
     }
   };
 
   const fetchExampleData = async (exampleName) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/examples/${exampleName}`);
+      console.log('Fetched example data:', response.data);
+      console.log('Panels array:', response.data.panels);
       setExampleData(response.data);
     } catch (error) {
       console.error('Error fetching example data:', error);
+      // Fallback to mock data when API is not available
+      const mockData = {
+        title: exampleName,
+        story: "This is a sample story for demonstration purposes. In a small coastal village, where the sea whispered secrets to the shore, there lived a curious boy named Arun. Every evening, as the sun dipped behind the hills and the sky turned shades of orange and violet, Arun would carry his little lantern and sit on the rocks, watching the restless waves dance under the fading light.",
+        panels: [
+          "/static/examples/LittleLantern/scene1.png",
+          "/static/examples/LittleLantern/scene2.png", 
+          "/static/examples/LittleLantern/scene3.png",
+          "/static/examples/LittleLantern/scene4.png",
+          "/static/examples/LittleLantern/scene5.png"
+        ]
+      };
+      setExampleData(mockData);
     }
   };
 
   const handleExampleChange = (exampleName) => {
     setSelectedExample(exampleName);
+    setSelectedPanelIndex(0); // Reset to first panel when example changes
     fetchExampleData(exampleName);
   };
 
@@ -593,29 +615,87 @@ function App() {
               <h3>Explore Example Stories and Manga</h3>
               <p>Select from our curated examples to see how stories transform into manga panels!</p>
               
-              <div className="example-selector">
-                <label>Select Example</label>
-                <select 
-                  value={selectedExample} 
-                  onChange={(e) => handleExampleChange(e.target.value)}
-                >
-                  {examples.map && examples.map(example => (
-                    <option key={example} value={example}>{example}</option>
-                  ))}
-                </select>
-              </div>
-
               {exampleData && (
-                <div className="example-content">
-                  <div className="example-story">
-                    <h4>Story Title</h4>
-                    <input type="text" value={exampleData.title} readOnly />
-                    
-                    <h4>Story Text</h4>
-                    <textarea value={exampleData.story} readOnly rows={12} />
+                <div className="examples-layout">
+                  <div className="examples-left-panel">
+                    <div className="example-selector">
+                      <label>Select Example</label>
+                      <select 
+                        value={selectedExample} 
+                        onChange={(e) => handleExampleChange(e.target.value)}
+                      >
+                        {examples.map && examples.map(example => (
+                          <option key={example} value={example}>{example}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="example-story">
+                      <div className="story-title-section">
+                        <label>Story Title</label>
+                        <input type="text" value={exampleData.title} readOnly />
+                      </div>
+                      
+                      <div className="story-text-section">
+                        <label>Story Text</label>
+                        <textarea value={exampleData.story} readOnly rows={15} />
+                      </div>
+                    </div>
+
+                    <div className="how-it-works">
+                      <h4>How It Works:</h4>
+                      <ol>
+                        <li><strong>Select an Example:</strong> Choose from the dropdown above</li>
+                        <li><strong>View the Story:</strong> Read the original story text</li>
+                        <li><strong>See the Manga:</strong> Observe how AI transforms text into visual panels</li>
+                      </ol>
+                    </div>
                   </div>
                   
-                  <ImageGallery images={exampleData.panels} title="Manga Panels" />
+                  <div className="examples-right-panel">
+                    <div className="manga-display">
+                      <div className="manga-header">
+                        <h4>See the Manga</h4>
+                        <div className="manga-controls">
+                          <button className="control-btn">↓</button>
+                          <button className="control-btn">⤢</button>
+                          <button className="control-btn">✕</button>
+                        </div>
+                      </div>
+                      <div className="manga-content">
+                        {exampleData.panels && exampleData.panels.length > 0 ? (
+                          <>
+                            <div className="main-manga-panel">
+                              <img src={`${API_BASE_URL}${exampleData.panels[selectedPanelIndex]}`} alt={`Manga panel ${selectedPanelIndex + 1}`} />
+                            </div>
+                            <div className="manga-thumbnails">
+                              {console.log('Rendering thumbnails, panels:', exampleData.panels)}
+                              {exampleData.panels.map((panel, index) => (
+                                <div 
+                                  key={index} 
+                                  className={`thumbnail-item ${index === selectedPanelIndex ? 'active' : ''}`}
+                                  onClick={() => setSelectedPanelIndex(index)}
+                                >
+                                  <img src={`${API_BASE_URL}${panel}`} alt={`Panel ${index + 1}`} />
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="no-panels">
+                            {console.log('No panels available, exampleData:', exampleData)}
+                            No manga panels available
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!exampleData && (
+                <div className="loading-examples">
+                  <p>Loading example data...</p>
                 </div>
               )}
             </div>
