@@ -142,7 +142,6 @@ if [ "$DOCKER_AVAILABLE" = true ]; then
     
     # Create docker-compose override for development
     cat > docker-compose.override.yml << EOF
-version: '3.8'
 services:
   postgres:
     ports:

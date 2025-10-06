@@ -96,7 +96,7 @@ class UserSession(Base):
     id = Column(String(255), primary_key=True)
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
     last_activity = Column(TIMESTAMP, server_default=func.current_timestamp(), index=True)
-    metadata = Column(JSONB, nullable=True)
+    session_metadata = Column(JSONB, nullable=True)
     
     def __repr__(self):
         return f"<UserSession(id={self.id}, last_activity={self.last_activity})>"
@@ -107,7 +107,7 @@ class UserSession(Base):
             'id': self.id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_activity': self.last_activity.isoformat() if self.last_activity else None,
-            'metadata': self.metadata,
+            'session_metadata': self.session_metadata,
         }
 
 # Task status constants

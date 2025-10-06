@@ -1,6 +1,38 @@
-version: '3.8'
-
 services:
+  # Database services
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mangakai}
+      POSTGRES_USER: ${POSTGRES_USER:-mangakai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mangakai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mangakai}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    networks:
+      - mangakai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Application services
   backend:
     build:
       context: .
@@ -9,16 +41,24 @@ services:
       - "8000:8000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-mangakai}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-mangakai}
+      - REDIS_URL=redis://redis:6379/0
       - TEMPLATE_PATH=data/templates/template.png
       - OUTPUT_DIR=data/output
       - STORIES_DIR=data/stories
       - IMAGE_MODEL_NAME=gemini-2.5-flash-image-preview
       - SCENE_MODEL_NAME=gemini-2.0-flash
+      - ENVIRONMENT=development
     volumes:
       - ./data:/app/data
       - ./.env:/app/.env
     networks:
       - mangakai-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend:
@@ -26,7 +66,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "5173:80"
     depends_on:
       - backend
     networks:
@@ -38,5 +78,9 @@ networks:
     driver: bridge
 
 volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
   manga_data:
     driver: local
