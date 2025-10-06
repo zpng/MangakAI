@@ -341,7 +341,14 @@ async def get_user_tasks(
                 "total_panels": task.total_panels,
                 "created_at": task.created_at.isoformat(),
                 "completed_at": task.completed_at.isoformat() if task.completed_at else None,
-                "story_preview": task.story_text[:100] + "..." if len(task.story_text) > 100 else task.story_text
+                "story_preview": task.story_text[:100] + "..." if len(task.story_text) > 100 else task.story_text,
+                "art_style": task.art_style,
+                "mood": task.mood,
+                "color_palette": task.color_palette,
+                "character_style": task.character_style,
+                "line_style": task.line_style,
+                "composition": task.composition,
+                "additional_notes": task.additional_notes
             })
         
         return {"tasks": tasks_data}
