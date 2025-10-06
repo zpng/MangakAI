@@ -67,8 +67,15 @@ class MangaPanel(Base):
     status = Column(String(50), default='PENDING')
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
     
+    # Panel regeneration fields
+    original_panel_id = Column(UUID(as_uuid=True), ForeignKey('manga_panels.id'), nullable=True, index=True)
+    regeneration_request = Column(Text, nullable=True)
+    is_regenerated = Column(Boolean, default=False, nullable=False, index=True)
+    
     # Relationships
     task = relationship("MangaTask", back_populates="panels")
+    # Self-referential relationship for regenerated panels
+    original_panel = relationship("MangaPanel", remote_side=[id], backref="regenerated_panels")
     
     def __repr__(self):
         return f"<MangaPanel(id={self.id}, task_id={self.task_id}, panel_number={self.panel_number})>"
@@ -85,6 +92,9 @@ class MangaPanel(Base):
             'version': self.version,
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
+            'original_panel_id': str(self.original_panel_id) if self.original_panel_id else None,
+            'regeneration_request': self.regeneration_request,
+            'is_regenerated': self.is_regenerated,
         }
 
 class UserSession(Base):
