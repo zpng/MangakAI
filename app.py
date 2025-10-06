@@ -1,13 +1,13 @@
+import os
+
 import gradio as gr
+
 from manga import (
-    generate_manga_interface, 
+    generate_manga_interface,
     generate_manga_from_file_interface,
-    regenerate_panel_interface,
-    get_current_panels,
     create_pdf_interface
 )
 from utils import ART_STYLES, MOOD_OPTIONS, COLOR_PALETTES, CHARACTER_STYLES, LINE_STYLES, COMPOSITION_STYLES
-import os
 
 # Define your example data
 EXAMPLES = {
@@ -71,6 +71,7 @@ The next day, Leo asked his neighbors if the puppy belonged to anyone, but no on
     }
 }
 
+
 def load_example(example_name):
     """Load example data when user selects an example."""
     if example_name in EXAMPLES:
@@ -80,18 +81,21 @@ def load_example(example_name):
         return example["title"], example["story"], existing_panels
     return "", "", []
 
-def regenerate_and_replace_interface(panel_number: int, modification_request: str, replace_original: bool, reference_image=None):
+
+def regenerate_and_replace_interface(panel_number: int, modification_request: str, replace_original: bool,
+                                     reference_image=None):
     """Interface function for Gradio - regenerate panel with option to replace original and optional reference image."""
     from manga import get_global_generator
-    
+
     generator = get_global_generator()
     try:
         if not modification_request.strip():
             return "Please provide modification instructions.", None, []
-        
+
         panel_index = panel_number - 1  # Convert to 0-based index
-        new_image_path, saved_image = generator.regenerate_specific_panel(panel_index, modification_request, reference_image)
-        
+        new_image_path, saved_image = generator.regenerate_specific_panel(panel_index, modification_request,
+                                                                          reference_image)
+
         # If replace_original is True, update the main gallery
         updated_gallery = []
         if replace_original and generator.current_generation['generated_images']:
@@ -99,42 +103,43 @@ def regenerate_and_replace_interface(panel_number: int, modification_request: st
             generator.current_generation['generated_images'][panel_index]['image_path'] = new_image_path
             generator.current_generation['generated_images'][panel_index]['image'] = saved_image
             generator.current_generation['generated_images'][panel_index]['version'] += 1
-            
+
             # Get all current image paths for the gallery
             updated_gallery = [img['image_path'] for img in generator.current_generation['generated_images']]
-            
+
             status_message = f"Panel {panel_number} regenerated and replaced successfully!"
         else:
             status_message = f"Panel {panel_number} regenerated successfully! (Original preserved)"
-        
+
         return status_message, new_image_path, updated_gallery
-        
+
     except Exception as e:
         return f"Error regenerating panel: {e}", None, []
+
 
 def create_gradio_interface():
     with gr.Blocks(title="MangakAI", theme=gr.themes.Soft()) as demo:
         gr.Markdown("# 📚 MangakAI")
         gr.Markdown("Transform your stories into manga panels with AI and custom style preferences!")
-        
+
         with gr.Tab("📝 Generate Manga"):
             with gr.Tab("Text Input"):
                 with gr.Row():
                     with gr.Column(scale=2):
                         story_input = gr.Textbox(
-                            label="Enter your story", 
+                            label="Enter your story",
                             placeholder="Once upon a time...",
                             lines=10
                         )
                     with gr.Column(scale=1):
                         num_scenes_text = gr.Slider(
-                            minimum=1, 
-                            maximum=10, 
+                            minimum=1,
+                            maximum=10,
                             value=5,
                             step=1,
                             label="Number of Scenes"
                         )
-                
+
                 # Style Preferences Section
                 gr.Markdown("### 🎨 Style Preferences")
                 with gr.Row():
@@ -170,13 +175,13 @@ def create_gradio_interface():
                             value="None",
                             label="Composition Style"
                         )
-                
+
                 additional_notes_text = gr.Textbox(
                     label="Additional Style Notes",
                     placeholder="Any specific style preferences, character descriptions, or artistic directions...",
                     lines=3
                 )
-                
+
                 # Custom Template Upload Section
                 gr.Markdown("### 📋 Custom Template (Optional)")
                 gr.Markdown("*Upload your own manga panel template. If not provided, default template will be used.*")
@@ -185,7 +190,7 @@ def create_gradio_interface():
                         label="Upload Custom Template",
                         file_types=[".png", ".jpg", ".jpeg", ".webp"]
                     )
-                
+
                 gr.Markdown("**Template Guidelines:**")
                 gr.Markdown("""
                 - Use PNG format for best results
@@ -193,9 +198,9 @@ def create_gradio_interface():
                 - Recommended size: 1024x1024 or higher
                 - The AI will use your template as a guide for panel layout
                 """)
-                
+
                 generate_btn = gr.Button("🎨 Generate Manga", variant="primary", size="lg")
-                
+
                 with gr.Row():
                     output_gallery = gr.Gallery(
                         label="Generated Manga Panels",
@@ -205,13 +210,13 @@ def create_gradio_interface():
                         rows=3,
                         height="auto"
                     )
-                
+
                 scene_output = gr.Textbox(
                     label="Scene Descriptions",
                     lines=5,
                     max_lines=10
                 )
-            
+
             with gr.Tab("File Upload"):
                 with gr.Row():
                     with gr.Column(scale=2):
@@ -222,12 +227,12 @@ def create_gradio_interface():
                     with gr.Column(scale=1):
                         num_scenes_file = gr.Slider(
                             minimum=1,
-                            maximum=10, 
+                            maximum=10,
                             value=5,
                             step=1,
                             label="Number of Scenes"
                         )
-                
+
                 # Style Preferences Section for File Upload
                 gr.Markdown("### 🎨 Style Preferences")
                 with gr.Row():
@@ -263,13 +268,13 @@ def create_gradio_interface():
                             value="None",
                             label="Composition Style"
                         )
-                
+
                 additional_notes_file = gr.Textbox(
                     label="Additional Style Notes",
                     placeholder="Any specific style preferences, character descriptions, or artistic directions...",
                     lines=3
                 )
-                
+
                 # Custom Template Upload Section for File Upload
                 gr.Markdown("### 📋 Custom Template (Optional)")
                 gr.Markdown("*Upload your own manga panel template. If not provided, default template will be used.*")
@@ -278,9 +283,9 @@ def create_gradio_interface():
                         label="Upload Custom Template",
                         file_types=[".png", ".jpg", ".jpeg", ".webp"]
                     )
-                
+
                 generate_file_btn = gr.Button("🎨 Generate Manga from File", variant="primary", size="lg")
-                
+
                 with gr.Row():
                     output_gallery_file = gr.Gallery(
                         label="Generated Manga Panels",
@@ -289,17 +294,17 @@ def create_gradio_interface():
                         rows=3,
                         height="auto"
                     )
-                
+
                 scene_output_file = gr.Textbox(
                     label="Scene Descriptions",
                     lines=5,
                     max_lines=10
                 )
-        
+
         with gr.Tab("🔄 Regenerate Panels"):
             gr.Markdown("### Select a panel to regenerate with modifications")
             gr.Markdown("**Note:** You must generate manga first before you can regenerate panels.")
-            
+
             with gr.Row():
                 with gr.Column(scale=1):
                     panel_selector = gr.Number(
@@ -309,13 +314,13 @@ def create_gradio_interface():
                         maximum=10,
                         precision=0
                     )
-                    
+
                     modification_input = gr.Textbox(
                         label="Modification Instructions",
                         placeholder="e.g., 'Make the lighting more dramatic', 'Change character expression to angry', 'Add more action lines'",
                         lines=3
                     )
-                    
+
                     # Reference Image Upload Section
                     gr.Markdown("### 🖼️ Reference Image (Optional)")
                     gr.Markdown("*Upload an image to guide the regeneration style, composition, or specific elements*")
@@ -323,26 +328,26 @@ def create_gradio_interface():
                         label="Upload Reference Image",
                         file_types=[".png", ".jpg", ".jpeg", ".webp"]
                     )
-                    
+
                     replace_checkbox = gr.Checkbox(
                         label="Replace original panel",
                         value=False
                     )
                     gr.Markdown("*Check this to replace the original panel in the main gallery*")
-                    
+
                     regenerate_btn = gr.Button("🔄 Regenerate Panel", variant="secondary", size="lg")
-                
+
                 with gr.Column(scale=2):
                     regenerated_image = gr.Image(
                         label="Regenerated Panel",
                         show_label=True
                     )
-            
+
             regeneration_status = gr.Textbox(
                 label="Status",
                 interactive=False
             )
-            
+
             # Updated main gallery display (shows when panels are replaced)
             with gr.Row():
                 updated_main_gallery = gr.Gallery(
@@ -353,7 +358,7 @@ def create_gradio_interface():
                     height="auto",
                     visible=False
                 )
-            
+
             gr.Markdown("### Reference Image Guidelines:")
             gr.Markdown("""
             - **Style Reference**: Upload an image with the art style you want to emulate
@@ -362,7 +367,7 @@ def create_gradio_interface():
             - **Character Reference**: Show specific character appearances or expressions
             - **Environment Reference**: Demonstrate background or setting elements
             """)
-            
+
             gr.Markdown("### Common Modification Examples:")
             gr.Markdown("""
             - **Lighting**: "Make it darker with more shadows", "Add bright sunlight", "Create moody twilight atmosphere"
@@ -371,32 +376,32 @@ def create_gradio_interface():
             - **Style**: "Add more action lines", "Make it more dramatic", "Simplify the background"
             - **Details**: "Add more environmental details", "Remove background clutter", "Focus more on the character"
             """)
-            
+
             gr.Markdown("### Replace Panel Option:")
             gr.Markdown("""
             - **Unchecked**: The regenerated panel is shown separately, original is preserved
             - **Checked**: The regenerated panel replaces the original in the main gallery
             """)
-        
+
         with gr.Tab("📥 Download PDF"):
             gr.Markdown("### Export your manga as a PDF")
             gr.Markdown("**Note:** You must generate manga first before you can create a PDF.")
-            
+
             with gr.Row():
                 with gr.Column(scale=1):
                     create_pdf_btn = gr.Button("📥 Create PDF", variant="primary", size="lg")
-                
+
                 with gr.Column(scale=2):
                     pdf_status = gr.Textbox(
                         label="Status",
                         interactive=False
                     )
-                    
+
                     download_pdf = gr.File(
                         label="Download PDF",
                         visible=False
                     )
-            
+
             gr.Markdown("### PDF Features:")
             gr.Markdown("""
             - **A4 format** with proper margins and professional layout
@@ -405,11 +410,11 @@ def create_gradio_interface():
             - **Custom template notation** if user template was used
             - **Automatic image scaling** to fit pages while maintaining aspect ratio
             """)
-        
+
         with gr.Tab("🎯 Examples"):
             gr.Markdown("### Explore Example Stories and Manga")
             gr.Markdown("Select from our curated examples to see how stories transform into manga panels!")
-            
+
             with gr.Row():
                 with gr.Column(scale=1):
                     example_selector = gr.Dropdown(
@@ -417,20 +422,20 @@ def create_gradio_interface():
                         label="Select Example",
                         value=list(EXAMPLES.keys())[0] if EXAMPLES else None
                     )
-                    
+
                     example_title = gr.Textbox(
                         label="Story Title",
                         interactive=False,
                         lines=1
                     )
-                    
+
                     example_story = gr.Textbox(
                         label="Story Text",
                         interactive=False,
                         lines=8,
                         max_lines=12
                     )
-                
+
                 with gr.Column(scale=2):
                     example_gallery = gr.Gallery(
                         label="Manga Panels",
@@ -439,7 +444,7 @@ def create_gradio_interface():
                         rows=3,
                         height="auto"
                     )
-            
+
             gr.Markdown("### How It Works:")
             gr.Markdown("""
             1. **Select an Example**: Choose from the dropdown above
@@ -447,28 +452,28 @@ def create_gradio_interface():
             3. **See the Manga**: Observe how AI transforms text into visual panels
             4. **Try Your Own**: Use the "Generate Manga" tab to create your own!
             """)
-            
+
             # Load first example by default
             def load_first_example():
                 if EXAMPLES:
                     first_key = list(EXAMPLES.keys())[0]
                     return load_example(first_key)
                 return "", "", []
-            
+
             # Event handler for example selection
             example_selector.change(
                 fn=load_example,
                 inputs=[example_selector],
                 outputs=[example_title, example_story, example_gallery]
             )
-        
+
         # Helper function to update gallery visibility
         def update_gallery_visibility(gallery_images):
             if gallery_images:
                 return gr.Gallery(visible=True, value=gallery_images)
             else:
                 return gr.Gallery(visible=False)
-        
+
         # Helper function to handle PDF creation and make file available for download
         def create_and_provide_pdf():
             status, pdf_path = create_pdf_interface()
@@ -476,22 +481,22 @@ def create_gradio_interface():
                 return status, gr.File(value=pdf_path, visible=True)
             else:
                 return status, gr.File(visible=False)
-        
+
         # Event handlers
         generate_btn.click(
             fn=generate_manga_interface,
-            inputs=[story_input, num_scenes_text, art_style_text, mood_text, color_palette_text, 
-                   character_style_text, line_style_text, composition_text, additional_notes_text, user_template_text],
+            inputs=[story_input, num_scenes_text, art_style_text, mood_text, color_palette_text,
+                    character_style_text, line_style_text, composition_text, additional_notes_text, user_template_text],
             outputs=[output_gallery, scene_output]
         )
-        
+
         generate_file_btn.click(
             fn=generate_manga_from_file_interface,
             inputs=[file_input, num_scenes_file, art_style_file, mood_file, color_palette_file,
-                   character_style_file, line_style_file, composition_file, additional_notes_file, user_template_file],
+                    character_style_file, line_style_file, composition_file, additional_notes_file, user_template_file],
             outputs=[output_gallery_file, scene_output_file]
         )
-        
+
         regenerate_btn.click(
             fn=regenerate_and_replace_interface,
             inputs=[panel_selector, modification_input, replace_checkbox, reference_image_upload],
@@ -501,19 +506,20 @@ def create_gradio_interface():
             inputs=[updated_main_gallery],
             outputs=[updated_main_gallery]
         )
-        
+
         create_pdf_btn.click(
             fn=create_and_provide_pdf,
             outputs=[pdf_status, download_pdf]
         )
-        
+
         # Load first example on startup
         demo.load(
             fn=load_first_example,
             outputs=[example_title, example_story, example_gallery]
         )
-    
+
     return demo
+
 
 if __name__ == "__main__":
     demo = create_gradio_interface()

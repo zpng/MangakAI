@@ -246,7 +246,8 @@ class MangaGenerator:
         
         # Build the content list with template and optional reference
         content = [scene_description, PIL.Image.open(current_template)]
-        
+        print(f"reference image path: {reference_image_path}")
+
         if reference_image_path and os.path.exists(reference_image_path):
             content.append(PIL.Image.open(reference_image_path))
             print(f"Using reference image: {reference_image_path}")

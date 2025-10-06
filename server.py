@@ -1,22 +1,21 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
+import logging
 import os
 import shutil
 import tempfile
-import logging
+from typing import Optional, List
 
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from api.async_manga import router as async_manga_router
+from api.websocket import router as websocket_router
 # Import new async components
 from database import init_db, check_db_connection
-from api.websocket import router as websocket_router
-from api.async_manga import router as async_manga_router
-
 # Import legacy components for backward compatibility
 from manga import (
-    generate_manga_interface, 
+    generate_manga_interface,
     generate_manga_from_file_interface,
     regenerate_panel_interface,
     get_current_panels,
@@ -24,14 +23,13 @@ from manga import (
     get_global_generator
 )
 from utils import ART_STYLES, MOOD_OPTIONS, COLOR_PALETTES, CHARACTER_STYLES, LINE_STYLES, COMPOSITION_STYLES
-import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="MangakAI API", 
+    title="MangakAI API",
     description="Transform your stories into manga panels with AI - Now with async processing!",
     version="2.0.0"
 )
@@ -52,6 +50,7 @@ app.include_router(async_manga_router)
 # Serve static files (generated images, etc.)
 app.mount("/static", StaticFiles(directory="data"), name="static")
 
+
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
@@ -68,32 +67,36 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Startup error: {str(e)}")
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
     logger.info("Application shutting down")
+
 
 # Health check endpoints
 @app.get("/health")
 async def health_check():
     """Application health check"""
     db_healthy = check_db_connection()
-    
+
     return {
         "status": "healthy" if db_healthy else "unhealthy",
         "database": "connected" if db_healthy else "disconnected",
         "version": "2.0.0"
     }
 
+
 @app.get("/ready")
 async def readiness_check():
     """Readiness check for Kubernetes"""
     db_healthy = check_db_connection()
-    
+
     if not db_healthy:
         raise HTTPException(status_code=503, detail="Database not ready")
-    
+
     return {"status": "ready"}
+
 
 # Legacy API endpoints for backward compatibility
 
@@ -109,10 +112,12 @@ class GenerateMangaRequest(BaseModel):
     composition: Optional[str] = None
     additional_notes: str = ""
 
+
 class RegeneratePanelRequest(BaseModel):
     panel_number: int
     modification_request: str
     replace_original: bool = False
+
 
 class MangaResponse(BaseModel):
     success: bool
@@ -120,16 +125,19 @@ class MangaResponse(BaseModel):
     gallery_images: List[str] = []
     scene_descriptions: str = ""
 
+
 class PanelResponse(BaseModel):
     success: bool
     message: str
     regenerated_image: Optional[str] = None
     updated_gallery: List[str] = []
 
+
 class PDFResponse(BaseModel):
     success: bool
     message: str
     pdf_path: Optional[str] = None
+
 
 class StyleOptionsResponse(BaseModel):
     art_styles: List[str]
@@ -139,10 +147,12 @@ class StyleOptionsResponse(BaseModel):
     line_styles: List[str]
     composition_styles: List[str]
 
+
 class ExampleResponse(BaseModel):
     title: str
     story: str
     panels: List[str]
+
 
 # Example data
 EXAMPLES = {
@@ -180,9 +190,11 @@ EXAMPLES = {
     }
 }
 
+
 @app.get("/")
 async def root():
     return {"message": "MangakAI API is running"}
+
 
 @app.get("/api/style-options", response_model=StyleOptionsResponse)
 async def get_style_options():
@@ -196,23 +208,26 @@ async def get_style_options():
         composition_styles=COMPOSITION_STYLES
     )
 
+
 @app.get("/api/examples")
 async def get_examples():
     """Get all example stories"""
     return {"examples": list(EXAMPLES.keys())}
+
 
 @app.get("/api/examples/{example_name}", response_model=ExampleResponse)
 async def get_example(example_name: str):
     """Get a specific example story"""
     if example_name not in EXAMPLES:
         raise HTTPException(status_code=404, detail="Example not found")
-    
+
     example = EXAMPLES[example_name]
     return ExampleResponse(
         title=example["title"],
         story=example["story"],
         panels=example["panels"]
     )
+
 
 @app.post("/api/generate-manga", response_model=MangaResponse)
 async def generate_manga(request: GenerateMangaRequest):
@@ -225,7 +240,7 @@ async def generate_manga(request: GenerateMangaRequest):
         character_style = request.character_style if request.character_style else "None"
         line_style = request.line_style if request.line_style else "None"
         composition = request.composition if request.composition else "None"
-        
+
         gallery_images, scene_descriptions = generate_manga_interface(
             story_text=request.story_text,
             num_scenes=request.num_scenes,
@@ -238,7 +253,7 @@ async def generate_manga(request: GenerateMangaRequest):
             additional_notes=request.additional_notes,
             user_template=None
         )
-        
+
         # Convert local paths to API paths
         api_gallery_images = []
         if gallery_images:
@@ -248,7 +263,7 @@ async def generate_manga(request: GenerateMangaRequest):
                     relative_path = os.path.relpath(img_path, "data")
                     api_path = f"/static/{relative_path}"
                     api_gallery_images.append(api_path)
-        
+
         # Convert scene_descriptions list to string if it's a list
         scene_descriptions_str = ""
         if scene_descriptions:
@@ -256,14 +271,14 @@ async def generate_manga(request: GenerateMangaRequest):
                 scene_descriptions_str = "\n\n".join(scene_descriptions)
             else:
                 scene_descriptions_str = str(scene_descriptions)
-        
+
         return MangaResponse(
             success=True,
             message="Manga generated successfully!",
             gallery_images=api_gallery_images,
             scene_descriptions=scene_descriptions_str
         )
-    
+
     except Exception as e:
         return MangaResponse(
             success=False,
@@ -272,17 +287,18 @@ async def generate_manga(request: GenerateMangaRequest):
             scene_descriptions=""
         )
 
+
 @app.post("/api/generate-manga-from-file", response_model=MangaResponse)
 async def generate_manga_from_file(
-    file: UploadFile = File(...),
-    num_scenes: int = Form(5),
-    art_style: Optional[str] = Form(None),
-    mood: Optional[str] = Form(None),
-    color_palette: Optional[str] = Form(None),
-    character_style: Optional[str] = Form(None),
-    line_style: Optional[str] = Form(None),
-    composition: Optional[str] = Form(None),
-    additional_notes: str = Form("")
+        file: UploadFile = File(...),
+        num_scenes: int = Form(5),
+        art_style: Optional[str] = Form(None),
+        mood: Optional[str] = Form(None),
+        color_palette: Optional[str] = Form(None),
+        character_style: Optional[str] = Form(None),
+        line_style: Optional[str] = Form(None),
+        composition: Optional[str] = Form(None),
+        additional_notes: str = Form("")
 ):
     """Generate manga from uploaded story file"""
     try:
@@ -290,7 +306,7 @@ async def generate_manga_from_file(
         with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as temp_file:
             shutil.copyfileobj(file.file, temp_file)
             temp_path = temp_file.name
-        
+
         try:
             # Convert None values to "None" strings for the interface
             art_style = art_style if art_style else "None"
@@ -299,7 +315,7 @@ async def generate_manga_from_file(
             character_style = character_style if character_style else "None"
             line_style = line_style if line_style else "None"
             composition = composition if composition else "None"
-            
+
             gallery_images, scene_descriptions = generate_manga_from_file_interface(
                 story_file=temp_path,
                 num_scenes=num_scenes,
@@ -312,7 +328,7 @@ async def generate_manga_from_file(
                 additional_notes=additional_notes,
                 user_template=None
             )
-            
+
             # Convert local paths to API paths
             api_gallery_images = []
             if gallery_images:
@@ -321,7 +337,7 @@ async def generate_manga_from_file(
                         relative_path = os.path.relpath(img_path, "data")
                         api_path = f"/static/{relative_path}"
                         api_gallery_images.append(api_path)
-            
+
             # Convert scene_descriptions list to string if it's a list
             scene_descriptions_str = ""
             if scene_descriptions:
@@ -329,18 +345,18 @@ async def generate_manga_from_file(
                     scene_descriptions_str = "\n\n".join(scene_descriptions)
                 else:
                     scene_descriptions_str = str(scene_descriptions)
-            
+
             return MangaResponse(
                 success=True,
                 message="Manga generated successfully from file!",
                 gallery_images=api_gallery_images,
                 scene_descriptions=scene_descriptions_str
             )
-        
+
         finally:
             # Clean up temporary file
             os.unlink(temp_path)
-    
+
     except Exception as e:
         return MangaResponse(
             success=False,
@@ -349,6 +365,7 @@ async def generate_manga_from_file(
             scene_descriptions=""
         )
 
+
 @app.get("/api/session-status")
 async def get_session_status():
     """Get the current session status."""
@@ -356,7 +373,7 @@ async def get_session_status():
         generator = get_global_generator()
         has_active_session = bool(generator.current_generation['generated_images'])
         panel_count = len(generator.current_generation['generated_images']) if has_active_session else 0
-        
+
         return {
             "success": True,
             "has_active_session": has_active_session,
@@ -371,12 +388,13 @@ async def get_session_status():
             "message": f"Error checking session status: {str(e)}"
         }
 
+
 @app.post("/api/regenerate-panel", response_model=PanelResponse)
 async def regenerate_panel(
-    panel_number: int = Form(...),
-    modification_request: str = Form(...),
-    replace_original: bool = Form(False),
-    reference_image: Optional[UploadFile] = File(None)
+        panel_number: int = Form(...),
+        modification_request: str = Form(...),
+        replace_original: bool = Form(False),
+        reference_image: Optional[UploadFile] = File(None)
 ):
     """Regenerate a specific panel with modifications"""
     try:
@@ -386,7 +404,7 @@ async def regenerate_panel(
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
                 shutil.copyfileobj(reference_image.file, temp_file)
                 reference_path = temp_file.name
-        
+
         try:
             if replace_original:
                 # Use the regenerate and replace interface
@@ -397,13 +415,13 @@ async def regenerate_panel(
                     replace_original=replace_original,
                     reference_image=reference_path
                 )
-                
+
                 # Convert paths to API paths
                 api_new_image = None
                 if new_image_path and os.path.exists(new_image_path):
                     relative_path = os.path.relpath(new_image_path, "data")
                     api_new_image = f"/static/{relative_path}"
-                
+
                 api_updated_gallery = []
                 if updated_gallery:
                     for img_path in updated_gallery:
@@ -411,7 +429,7 @@ async def regenerate_panel(
                             relative_path = os.path.relpath(img_path, "data")
                             api_path = f"/static/{relative_path}"
                             api_updated_gallery.append(api_path)
-                
+
                 return PanelResponse(
                     success=True,
                     message=status,
@@ -425,24 +443,24 @@ async def regenerate_panel(
                     modification_request=modification_request,
                     reference_image=reference_path
                 )
-                
+
                 api_new_image = None
                 if new_image_path and os.path.exists(new_image_path):
                     relative_path = os.path.relpath(new_image_path, "data")
                     api_new_image = f"/static/{relative_path}"
-                
+
                 return PanelResponse(
                     success=True,
                     message=status_message,
                     regenerated_image=api_new_image,
                     updated_gallery=[]
                 )
-        
+
         finally:
             # Clean up reference image if it was uploaded
             if reference_path and os.path.exists(reference_path):
                 os.unlink(reference_path)
-    
+
     except Exception as e:
         return PanelResponse(
             success=False,
@@ -451,17 +469,18 @@ async def regenerate_panel(
             updated_gallery=[]
         )
 
+
 @app.post("/api/create-pdf", response_model=PDFResponse)
 async def create_pdf():
     """Create PDF from current manga panels"""
     try:
         status, pdf_path = create_pdf_interface()
-        
+
         if pdf_path and os.path.exists(pdf_path):
             # Convert to API path
             relative_path = os.path.relpath(pdf_path, "data")
             api_pdf_path = f"/static/{relative_path}"
-            
+
             return PDFResponse(
                 success=True,
                 message=status,
@@ -473,7 +492,7 @@ async def create_pdf():
                 message=status,
                 pdf_path=None
             )
-    
+
     except Exception as e:
         return PDFResponse(
             success=False,
@@ -481,12 +500,13 @@ async def create_pdf():
             pdf_path=None
         )
 
+
 @app.get("/api/current-panels")
 async def get_current_panels_api():
     """Get current manga panels"""
     try:
         panels = get_current_panels()
-        
+
         # Convert paths to API paths
         api_panels = []
         if panels:
@@ -495,11 +515,12 @@ async def get_current_panels_api():
                     relative_path = os.path.relpath(panel_path, "data")
                     api_path = f"/static/{relative_path}"
                     api_panels.append(api_path)
-        
+
         return {"panels": api_panels}
-    
+
     except Exception as e:
         return {"error": f"Error getting current panels: {str(e)}", "panels": []}
+
 
 @app.post("/api/upload-template")
 async def upload_template(file: UploadFile = File(...)):
@@ -508,17 +529,19 @@ async def upload_template(file: UploadFile = File(...)):
         # Save template to user templates directory
         generator = get_global_generator()
         template_path = generator.save_user_template(file.file)
-        
+
         if template_path:
             relative_path = os.path.relpath(template_path, "data")
             api_path = f"/static/{relative_path}"
             return {"success": True, "message": "Template uploaded successfully", "template_path": api_path}
         else:
             return {"success": False, "message": "Failed to upload template"}
-    
+
     except Exception as e:
         return {"success": False, "message": f"Error uploading template: {str(e)}"}
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
