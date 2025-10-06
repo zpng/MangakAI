@@ -90,8 +90,8 @@ const AsyncMangaGenerator = () => {
     // Initialize WebSocket connection
     initializeWebSocket();
     
-    // Load task history
-    loadTaskHistory();
+    // Load task history and check for active tasks
+    loadTaskHistoryAndRestoreState();
 
     // Load style options
     fetchStyleOptions();
@@ -104,6 +104,77 @@ const AsyncMangaGenerator = () => {
       websocketService.disconnect();
     };
   }, []);
+
+  const loadTaskHistoryAndRestoreState = async () => {
+    try {
+      const response = await getUserTasks(10, 0);
+      const tasks = response.data.tasks || [];
+      setTaskHistory(tasks);
+
+      // Check for active tasks and restore state
+      const activeTask = tasks.find(task => isTaskActive(task.status));
+      if (activeTask) {
+        console.log('Found active task on page load:', activeTask);
+        await restoreActiveTaskState(activeTask);
+      }
+    } catch (error) {
+      console.error('Failed to load task history:', error);
+    }
+  };
+
+  const restoreActiveTaskState = async (task) => {
+    try {
+      // Set current task
+      setCurrentTask({
+        task_id: task.task_id,
+        status: task.status
+      });
+
+      // Get detailed task status
+      const statusResponse = await getTaskStatus(task.task_id);
+      const taskData = statusResponse.data;
+
+      // Restore UI state
+      setIsGenerating(true);
+      setStatus(taskData.status);
+      setProgress(taskData.progress || 0);
+      setStatusMessage(getStatusMessage(
+        taskData.status, 
+        taskData.progress, 
+        taskData.current_panel, 
+        taskData.total_panels
+      ));
+
+      // Restore panels if available
+      if (taskData.panels && taskData.panels.length > 0) {
+        setPanels(taskData.panels);
+        // Convert panels to gallery format
+        const galleryUrls = taskData.panels.map(panel => panel.image_url);
+        setGalleryImages(galleryUrls);
+        
+        // Set scene descriptions
+        const descriptions = taskData.panels.map(panel => panel.scene_description).join('\n\n');
+        setSceneDescriptions(descriptions);
+      }
+
+      // Wait a bit for WebSocket to be ready, then subscribe
+      setTimeout(() => {
+        if (wsConnected) {
+          websocketService.subscribeToTask(task.task_id);
+        } else {
+          // Fallback to polling if WebSocket is not available
+          startPolling(task.task_id);
+        }
+      }, 1000);
+
+      console.log('Successfully restored active task state');
+    } catch (error) {
+      console.error('Failed to restore active task state:', error);
+      // If we can't restore the task state, just clear the active task
+      setCurrentTask(null);
+      setIsGenerating(false);
+    }
+  };
 
   const initializeWebSocket = async () => {
     try {
