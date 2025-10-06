@@ -268,6 +268,14 @@ async def regenerate_panel(
                 shutil.copyfileobj(reference_image.file, tmp_file)
                 reference_image_path = tmp_file.name
         
+        # Calculate the next version number for this panel_number
+        max_version = db.query(MangaPanel).filter(
+            MangaPanel.task_id == task_id,
+            MangaPanel.panel_number == panel_number
+        ).order_by(MangaPanel.version.desc()).first()
+        
+        next_version = (max_version.version + 1) if max_version else 1
+        
         # Create new panel record for regenerated version
         new_panel = MangaPanel(
             task_id=task_id,
@@ -277,7 +285,7 @@ async def regenerate_panel(
             regeneration_request=modification_request,
             is_regenerated=True,
             status='PENDING',
-            version=1
+            version=next_version
         )
         db.add(new_panel)
         db.commit()
