@@ -350,6 +350,7 @@ body {
   border-radius: 6px;
   font-size: 14px;
   background: white;
+  color: #495057;
   cursor: pointer;
   transition: border-color 0.3s ease;
 }
@@ -357,6 +358,28 @@ body {
 .style-dropdown select:focus {
   outline: none;
   border-color: #667eea;
+}
+
+/* Dark theme support for select dropdowns */
+@media (prefers-color-scheme: dark) {
+  .style-dropdown select {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+  
+  .style-dropdown select:focus {
+    border-color: #667eea;
+  }
+  
+  .style-dropdown select option {
+    background: #2d3748;
+    color: #e2e8f0;
+  }
+  
+  .style-dropdown label {
+    color: #e2e8f0;
+  }
 }
 
 /* Buttons */
@@ -642,6 +665,7 @@ body {
   border-radius: 8px;
   font-size: 14px;
   background: white;
+  color: #495057;
   cursor: pointer;
   transition: border-color 0.3s ease;
 }
@@ -649,6 +673,28 @@ body {
 .example-selector select:focus {
   outline: none;
   border-color: #667eea;
+}
+
+/* Dark theme support for example selector */
+@media (prefers-color-scheme: dark) {
+  .example-selector select {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+  
+  .example-selector select:focus {
+    border-color: #667eea;
+  }
+  
+  .example-selector select option {
+    background: #2d3748;
+    color: #e2e8f0;
+  }
+  
+  .example-selector label {
+    color: #e2e8f0;
+  }
 }
 
 .example-story {
