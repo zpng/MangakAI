@@ -187,48 +187,51 @@ def generate_manga_task(self, task_id: str, story_text: str, parameters: dict):
             raise
 
 @celery_app.task(bind=True, name='tasks.regenerate_panel_task')
-def regenerate_panel_task(self, task_id: str, panel_number: int, modification_request: str, reference_image_path: str = None):
+def regenerate_panel_task(self, regenerated_panel_id: str, modification_request: str, reference_image_path: str = None):
     """
     Asynchronous panel regeneration task
     """
     with get_db_session() as db:
         try:
-            # Get task and panel
-            task = db.query(MangaTask).filter(MangaTask.id == task_id).first()
-            panel = db.query(MangaPanel).filter(
-                MangaPanel.task_id == task_id,
-                MangaPanel.panel_number == panel_number
-            ).first()
+            # Get the regenerated panel record
+            regenerated_panel = db.query(MangaPanel).filter(MangaPanel.id == regenerated_panel_id).first()
+            if not regenerated_panel:
+                raise ValueError("Regenerated panel not found")
             
-            if not task or not panel:
-                raise ValueError("Task or panel not found")
+            # Get the original panel and task
+            original_panel = db.query(MangaPanel).filter(MangaPanel.id == regenerated_panel.original_panel_id).first()
+            task = db.query(MangaTask).filter(MangaTask.id == regenerated_panel.task_id).first()
             
-            # Update panel status
-            panel.status = PanelStatus.REGENERATING
+            if not original_panel or not task:
+                raise ValueError("Original panel or task not found")
+            
+            # Update regenerated panel status
+            regenerated_panel.status = PanelStatus.REGENERATING
             db.commit()
             
             send_progress_update(task.user_session_id, {
-                'task_id': task_id,
+                'task_id': task.id,
                 'status': 'REGENERATING',
-                'panel_number': panel_number,
-                'message': f'正在重新生成第 {panel_number} 个面板...'
+                'panel_number': regenerated_panel.panel_number,
+                'regenerated_panel_id': regenerated_panel_id,
+                'message': f'正在重新生成第 {regenerated_panel.panel_number} 个面板...'
             })
             
             # Initialize generator and create chat session
             generator = MangaGenerator()
             chat = generator.image_gen_client.chats.create(model=generator.image_gen_model_name)
             
-            # Create modified prompt
+            # Create modified prompt using original panel's scene description
             user_preferences = task.parameters or {}
             modified_scene = get_regeneration_prompt(
-                panel.scene_description,
+                original_panel.scene_description,
                 modification_request,
-                is_first_panel=(panel_number == 1),
+                is_first_panel=(regenerated_panel.panel_number == 1),
                 user_preferences=user_preferences
             )
             
-            # Generate new image
-            output_path = f"/tmp/panel_{task_id}_{panel_number}_v{panel.version + 1}.png"
+            # Generate new image with unique path
+            output_path = f"/tmp/panel_{task.id}_{regenerated_panel.panel_number}_regenerated_{regenerated_panel_id}.png"
             
             # Use reference image if provided
             if reference_image_path and os.path.exists(reference_image_path):
@@ -240,50 +243,60 @@ def regenerate_panel_task(self, task_id: str, panel_number: int, modification_re
                     modified_scene, output_path, chat
                 )
             
-            # Upload to cloud storage
+            # Upload to cloud storage with unique path
             cloud_url = upload_to_cloud_storage(
                 output_path, 
-                f"tasks/{task_id}/panel_{panel_number}_v{panel.version + 1}.webp"
+                f"tasks/{task.id}/panel_{regenerated_panel.panel_number}_regenerated_{regenerated_panel_id}.webp"
             )
             
-            # Update panel record
-            panel.image_url = cloud_url
-            panel.image_path = output_path
-            panel.version += 1
-            panel.status = PanelStatus.COMPLETED
+            # Update regenerated panel record
+            regenerated_panel.image_url = cloud_url
+            regenerated_panel.image_path = output_path
+            regenerated_panel.status = PanelStatus.COMPLETED
             db.commit()
             
             send_progress_update(task.user_session_id, {
-                'task_id': task_id,
+                'task_id': task.id,
                 'status': 'PANEL_REGENERATED',
-                'panel_number': panel_number,
+                'panel_number': regenerated_panel.panel_number,
+                'regenerated_panel_id': regenerated_panel_id,
                 'image_url': cloud_url,
-                'message': f'第 {panel_number} 个面板重新生成完成！'
+                'message': f'第 {regenerated_panel.panel_number} 个面板重新生成完成！'
             })
             
-            # Clean up temporary file
+            # Clean up temporary files
             if os.path.exists(output_path):
                 os.remove(output_path)
+            if reference_image_path and os.path.exists(reference_image_path):
+                os.remove(reference_image_path)
             
             return {
-                'panel_number': panel_number,
+                'regenerated_panel_id': regenerated_panel_id,
+                'panel_number': regenerated_panel.panel_number,
                 'image_url': cloud_url,
-                'version': panel.version
+                'version': regenerated_panel.version
             }
             
         except Exception as e:
             logger.error(f"Panel regeneration failed: {str(e)}")
             
-            if panel:
-                panel.status = PanelStatus.FAILED
+            if 'regenerated_panel' in locals() and regenerated_panel:
+                regenerated_panel.status = PanelStatus.FAILED
                 db.commit()
             
-            send_progress_update(task.user_session_id, {
-                'task_id': task_id,
-                'status': 'REGENERATION_FAILED',
-                'panel_number': panel_number,
-                'message': f'面板重新生成失败: {str(e)}'
-            })
+            # Get task info for progress update
+            if 'task' in locals() and task:
+                send_progress_update(task.user_session_id, {
+                    'task_id': task.id,
+                    'status': 'REGENERATION_FAILED',
+                    'panel_number': regenerated_panel.panel_number if 'regenerated_panel' in locals() else 0,
+                    'regenerated_panel_id': regenerated_panel_id,
+                    'message': f'面板重新生成失败: {str(e)}'
+                })
+            
+            # Clean up temporary files on error
+            if reference_image_path and os.path.exists(reference_image_path):
+                os.remove(reference_image_path)
             
             raise
 

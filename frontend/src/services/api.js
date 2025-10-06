@@ -89,14 +89,7 @@ export const getTaskStatus = async (taskId) => {
 };
 
 // Regenerate panel
-export const regeneratePanel = async (taskId, panelNumber, modificationRequest, referenceImage = null) => {
-  const formData = new FormData();
-  formData.append('modification_request', modificationRequest);
-  
-  if (referenceImage) {
-    formData.append('reference_image', referenceImage);
-  }
-
+export const regeneratePanel = async (taskId, panelNumber, formData) => {
   return apiClient.post(`/api/async/task/${taskId}/regenerate-panel/${panelNumber}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',

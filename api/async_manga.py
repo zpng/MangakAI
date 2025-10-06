@@ -230,7 +230,8 @@ async def get_task_status(task_id: str, db: Session = Depends(get_db)):
 async def regenerate_panel(
     task_id: str,
     panel_number: int,
-    request: RegeneratePanelRequest,
+    modification_request: str = Form(...),
+    replace_original: bool = Form(False),
     reference_image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
@@ -238,17 +239,19 @@ async def regenerate_panel(
     Regenerate a specific panel
     """
     try:
-        # Validate task and panel exist
+        # Validate task exists
         task = db.query(MangaTask).filter(MangaTask.id == task_id).first()
         if not task:
             raise HTTPException(status_code=404, detail="任务不存在")
         
-        panel = db.query(MangaPanel).filter(
+        # Find the original panel (only non-regenerated panels can be selected for regeneration)
+        original_panel = db.query(MangaPanel).filter(
             MangaPanel.task_id == task_id,
-            MangaPanel.panel_number == panel_number
+            MangaPanel.panel_number == panel_number,
+            MangaPanel.is_regenerated == False
         ).first()
-        if not panel:
-            raise HTTPException(status_code=404, detail="面板不存在")
+        if not original_panel:
+            raise HTTPException(status_code=404, detail="原始面板不存在")
         
         # Handle reference image if provided
         reference_image_path = None
@@ -261,17 +264,31 @@ async def regenerate_panel(
                 shutil.copyfileobj(reference_image.file, tmp_file)
                 reference_image_path = tmp_file.name
         
-        # Start regeneration task
+        # Create new panel record for regenerated version
+        new_panel = MangaPanel(
+            task_id=task_id,
+            panel_number=panel_number,
+            scene_description=original_panel.scene_description,
+            original_panel_id=original_panel.id,
+            regeneration_request=modification_request,
+            is_regenerated=True,
+            status='PENDING',
+            version=1
+        )
+        db.add(new_panel)
+        db.commit()
+        db.refresh(new_panel)
+        
+        # Start regeneration task with the new panel ID
         regenerate_panel_task.delay(
-            task_id, 
-            panel_number, 
-            request.modification_request,
+            new_panel.id,  # Use new panel ID instead of task_id + panel_number
+            modification_request,
             reference_image_path
         )
         
-        logger.info(f"Started panel regeneration for task {task_id}, panel {panel_number}")
+        logger.info(f"Started panel regeneration for task {task_id}, panel {panel_number}, new panel ID: {new_panel.id}")
         
-        return {"message": f"面板 {panel_number} 重新生成任务已启动"}
+        return {"message": f"面板 {panel_number} 重新生成任务已启动", "regenerated_panel_id": new_panel.id}
     
     except HTTPException:
         raise
