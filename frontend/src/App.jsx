@@ -26,6 +26,7 @@ function App() {
   const [selectedExample, setSelectedExample] = useState('');
   const [exampleData, setExampleData] = useState(null);
   const [selectedPanelIndex, setSelectedPanelIndex] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Regeneration states
   const [panelNumber, setPanelNumber] = useState(1);
@@ -102,6 +103,79 @@ function App() {
     setSelectedPanelIndex(0); // Reset to first panel when example changes
     fetchExampleData(exampleName);
   };
+
+  // Add download function for manga panels
+  const downloadPanel = async (panelUrl, panelIndex) => {
+    try {
+      // Check if panelUrl exists
+      if (!panelUrl) {
+        throw new Error('Panel URL is not available');
+      }
+
+      console.log('Attempting to download:', `${API_BASE_URL}${panelUrl}`);
+
+      // Try direct download approach first
+      const fullUrl = `${API_BASE_URL}${panelUrl}`;
+      
+      // Create download link directly without axios to avoid CORS issues
+      const link = document.createElement('a');
+      link.href = fullUrl;
+      link.target = '_blank';
+      
+      // Extract filename from URL or create a default one
+      const filename = panelUrl.split('/').pop() || `manga_panel_${panelIndex + 1}.png`;
+      link.download = filename;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      
+      console.log(`Successfully initiated download: ${filename}`);
+    } catch (error) {
+      console.error('Error downloading panel:', error);
+      
+      // Fallback: open in new tab if direct download fails
+      try {
+        const fullUrl = `${API_BASE_URL}${panelUrl}`;
+        window.open(fullUrl, '_blank');
+        console.log('Opened image in new tab as fallback');
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        alert('下载失败，请右键点击图片另存为');
+      }
+    }
+  };
+
+  // Add modal functions
+  const openModal = () => {
+    setIsModalOpen(true);
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    document.body.style.overflow = 'unset'; // Restore scrolling
+  };
+
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape' && isModalOpen) {
+        closeModal();
+      }
+    };
+
+    if (isModalOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isModalOpen]);
 
   const generateManga = async () => {
     setLoading(true);
@@ -657,9 +731,20 @@ function App() {
                       <div className="manga-header">
                         <h4>See the Manga</h4>
                         <div className="manga-controls">
-                          <button className="control-btn">↓</button>
-                          <button className="control-btn">⤢</button>
-                          <button className="control-btn">✕</button>
+                          <button 
+                            className="control-btn" 
+                            onClick={() => downloadPanel(exampleData.panels[selectedPanelIndex], selectedPanelIndex)}
+                            title="下载当前面板"
+                          >
+                            ↓
+                          </button>
+                          <button 
+                            className="control-btn"
+                            onClick={openModal}
+                            title="放大查看"
+                          >
+                            ⤢
+                          </button>
                         </div>
                       </div>
                       <div className="manga-content">
@@ -702,6 +787,42 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Modal for enlarged manga view */}
+      {isModalOpen && (
+        <div className="manga-modal-overlay" onClick={closeModal}>
+          <div className="manga-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="manga-modal-header">
+              <h3>漫画面板预览</h3>
+              <button className="modal-close-btn" onClick={closeModal}>
+                ✕
+              </button>
+            </div>
+            
+            <div className="manga-modal-body">
+              <div className="modal-main-panel">
+                <img 
+                  src={`${API_BASE_URL}${exampleData.panels[selectedPanelIndex]}`} 
+                  alt={`Manga panel ${selectedPanelIndex + 1}`}
+                  className="modal-main-image"
+                />
+              </div>
+              
+              <div className="modal-thumbnails">
+                {exampleData.panels.map((panel, index) => (
+                  <div 
+                    key={index} 
+                    className={`modal-thumbnail-item ${index === selectedPanelIndex ? 'active' : ''}`}
+                    onClick={() => setSelectedPanelIndex(index)}
+                  >
+                    <img src={`${API_BASE_URL}${panel}`} alt={`Panel ${index + 1}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
