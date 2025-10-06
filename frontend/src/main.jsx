@@ -1,10 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import './index.css'
-import AsyncMangaGenerator from './components/AsyncMangaGenerator.jsx'
+import AppRouter from './components/AppRouter.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AsyncMangaGenerator />
+    <BrowserRouter>
+      <AppRouter />
+    </BrowserRouter>
   </StrictMode>,
 )

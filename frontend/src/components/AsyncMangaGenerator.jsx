@@ -3,6 +3,7 @@
  * Handles asynchronous manga generation with real-time progress updates
  */
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { Upload, Download, RefreshCw, FileText, Image, Wand2, X, CheckCircle, AlertCircle, Clock, BookOpen } from 'lucide-react';
 import websocketService from '../services/websocket';
 import '../App.css'; // Import the same CSS as App.jsx
@@ -27,9 +28,40 @@ import {
 } from '../services/api';
 
 const AsyncMangaGenerator = () => {
-  // Tab state
-  const [activeTab, setActiveTab] = useState('generate-text');
+  const navigate = useNavigate();
+  const location = useLocation();
   
+  // Get current tab from URL path
+  const getCurrentTab = () => {
+    const path = location.pathname;
+    if (path === '/' || path === '/home') return 'generate-text';
+    if (path === '/upload') return 'generate-file';
+    if (path === '/regenerate') return 'regenerate';
+    if (path === '/histories') return 'pdf';
+    if (path === '/examples') return 'examples';
+    return 'generate-text';
+  };
+
+  // Tab state - now derived from URL
+  const [activeTab, setActiveTab] = useState(getCurrentTab());
+  
+  // Update activeTab when location changes
+  useEffect(() => {
+    setActiveTab(getCurrentTab());
+  }, [location.pathname]);
+
+  // Function to handle tab changes with navigation
+  const handleTabChange = (tabName) => {
+    const routes = {
+      'generate-text': '/home',
+      'generate-file': '/upload',
+      'regenerate': '/regenerate',
+      'pdf': '/histories',
+      'examples': '/examples'
+    };
+    navigate(routes[tabName] || '/home');
+  };
+
   // Form states
   const [storyText, setStoryText] = useState('');
   const [numScenes, setNumScenes] = useState(5);
@@ -623,35 +655,35 @@ const AsyncMangaGenerator = () => {
         <div className="tab-buttons">
           <button 
             className={activeTab === 'generate-text' ? 'active' : ''}
-            onClick={() => setActiveTab('generate-text')}
+            onClick={() => handleTabChange('generate-text')}
           >
             <FileText size={20} />
             Text Input
           </button>
           <button 
             className={activeTab === 'generate-file' ? 'active' : ''}
-            onClick={() => setActiveTab('generate-file')}
+            onClick={() => handleTabChange('generate-file')}
           >
             <Upload size={20} />
             File Upload
           </button>
           <button 
             className={activeTab === 'regenerate' ? 'active' : ''}
-            onClick={() => setActiveTab('regenerate')}
+            onClick={() => handleTabChange('regenerate')}
           >
             <RefreshCw size={20} />
             Regenerate Panels
           </button>
           <button 
             className={activeTab === 'pdf' ? 'active' : ''}
-            onClick={() => setActiveTab('pdf')}
+            onClick={() => handleTabChange('pdf')}
           >
             <Download size={20} />
             历史任务
           </button>
           <button 
             className={activeTab === 'examples' ? 'active' : ''}
-            onClick={() => setActiveTab('examples')}
+            onClick={() => handleTabChange('examples')}
           >
             <BookOpen size={20} />
             Examples
