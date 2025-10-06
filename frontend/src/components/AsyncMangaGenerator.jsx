@@ -1219,6 +1219,10 @@ const AsyncMangaGenerator = () => {
 
 // Task History Item Component
 const TaskHistoryItem = ({ task, index, onViewTask }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [taskDetails, setTaskDetails] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   const getStatusIcon = (status) => {
     switch (status) {
       case TASK_STATUS.COMPLETED:
@@ -1268,67 +1272,247 @@ const TaskHistoryItem = ({ task, index, onViewTask }) => {
     });
   };
 
+  const handleToggleExpand = async (e) => {
+    e.stopPropagation(); // 防止触发父级的onClick事件
+    
+    if (task.status !== TASK_STATUS.COMPLETED) {
+      return; // 只有已完成的任务才能展开
+    }
+
+    if (!isExpanded && !taskDetails) {
+      // 首次展开时加载任务详情
+      setIsLoading(true);
+      try {
+        const response = await getTaskStatus(task.task_id);
+        setTaskDetails(response.data);
+      } catch (error) {
+        console.error('Failed to load task details:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    setIsExpanded(!isExpanded);
+  };
+
+  const handleViewTaskClick = (e) => {
+    e.stopPropagation();
+    onViewTask(task.task_id);
+  };
+
   return (
     <div 
       className="task-history-item"
       style={{
-        padding: '15px',
         borderBottom: '1px solid #e0e0e0',
-        cursor: 'pointer',
-        transition: 'background-color 0.2s',
-        ':hover': { backgroundColor: '#f0f0f0' }
+        transition: 'background-color 0.2s'
       }}
-      onClick={() => onViewTask(task.task_id)}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-            {getStatusIcon(task.status)}
-            <span style={{ 
-              marginLeft: '8px', 
-              fontWeight: '500',
-              fontSize: '14px'
+      {/* 主要任务信息区域 */}
+      <div 
+        style={{
+          padding: '15px',
+          cursor: task.status === TASK_STATUS.COMPLETED ? 'pointer' : 'default',
+          ':hover': { backgroundColor: '#f0f0f0' }
+        }}
+        onClick={task.status === TASK_STATUS.COMPLETED ? handleToggleExpand : undefined}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              {getStatusIcon(task.status)}
+              <span style={{ 
+                marginLeft: '8px', 
+                fontWeight: '500',
+                fontSize: '14px'
+              }}>
+                任务 #{index + 1} - {getStatusText(task.status)}
+              </span>
+              <span style={{ 
+                marginLeft: '10px',
+                fontSize: '12px',
+                color: '#666',
+                backgroundColor: '#e9ecef',
+                padding: '2px 6px',
+                borderRadius: '4px'
+              }}>
+                {task.progress}%
+              </span>
+              {task.status === TASK_STATUS.COMPLETED && (
+                <span style={{ 
+                  marginLeft: '10px',
+                  fontSize: '12px',
+                  color: '#007bff',
+                  cursor: 'pointer'
+                }}>
+                  {isExpanded ? '收起 ▲' : '展开 ▼'}
+                </span>
+              )}
+            </div>
+            
+            <div style={{ 
+              fontSize: '13px', 
+              color: '#666', 
+              marginBottom: '6px',
+              lineHeight: '1.4'
             }}>
-              任务 #{index + 1} - {getStatusText(task.status)}
-            </span>
-            <span style={{ 
-              marginLeft: '10px',
-              fontSize: '12px',
-              color: '#666',
-              backgroundColor: '#e9ecef',
-              padding: '2px 6px',
-              borderRadius: '4px'
+              {task.story_preview}
+            </div>
+            
+            <div style={{ 
+              fontSize: '12px', 
+              color: '#888',
+              display: 'flex',
+              justifyContent: 'space-between'
             }}>
-              {task.progress}%
-            </span>
+              <span>创建: {formatDate(task.created_at)}</span>
+              {task.completed_at && (
+                <span>完成: {formatDate(task.completed_at)}</span>
+              )}
+            </div>
           </div>
           
-          <div style={{ 
-            fontSize: '13px', 
-            color: '#666', 
-            marginBottom: '6px',
-            lineHeight: '1.4'
-          }}>
-            {task.story_preview}
-          </div>
-          
-          <div style={{ 
-            fontSize: '12px', 
-            color: '#888',
-            display: 'flex',
-            justifyContent: 'space-between'
-          }}>
-            <span>创建: {formatDate(task.created_at)}</span>
-            {task.completed_at && (
-              <span>完成: {formatDate(task.completed_at)}</span>
+          <div style={{ marginLeft: '15px', fontSize: '12px', color: '#666', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <span>{task.total_panels} 面板</span>
+            {task.status !== TASK_STATUS.COMPLETED && (
+              <button 
+                onClick={handleViewTaskClick}
+                style={{
+                  marginTop: '5px',
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                查看
+              </button>
             )}
           </div>
         </div>
-        
-        <div style={{ marginLeft: '15px', fontSize: '12px', color: '#666' }}>
-          {task.total_panels} 面板
-        </div>
       </div>
+
+      {/* 展开的详细内容区域 */}
+      {isExpanded && task.status === TASK_STATUS.COMPLETED && (
+        <div style={{
+          padding: '0 15px 15px 15px',
+          backgroundColor: '#f8f9fa',
+          borderTop: '1px solid #e9ecef'
+        }}>
+          {isLoading ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+              加载中...
+            </div>
+          ) : taskDetails ? (
+            <>
+              {/* 动漫面板展示 */}
+              {taskDetails.panels && taskDetails.panels.length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <h4 style={{ 
+                    margin: '15px 0 10px 0', 
+                    fontSize: '14px', 
+                    fontWeight: '600',
+                    color: '#333'
+                  }}>
+                    Generated Manga Panels
+                  </h4>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                    gap: '10px',
+                    padding: '10px',
+                    backgroundColor: 'white',
+                    borderRadius: '8px',
+                    border: '1px solid #e0e0e0'
+                  }}>
+                    {taskDetails.panels.map((panel, panelIndex) => (
+                      <div key={panelIndex} style={{
+                        textAlign: 'center',
+                        padding: '8px',
+                        border: '1px solid #ddd',
+                        borderRadius: '6px',
+                        backgroundColor: '#fafafa'
+                      }}>
+                        <img 
+                          src={`http://localhost:8000${panel.image_url}`} 
+                          alt={`Panel ${panelIndex + 1}`}
+                          style={{
+                            width: '100%',
+                            height: '120px',
+                            objectFit: 'cover',
+                            borderRadius: '4px',
+                            marginBottom: '5px'
+                          }}
+                        />
+                        <div style={{ 
+                          fontSize: '11px', 
+                          color: '#666',
+                          fontWeight: '500'
+                        }}>
+                          Panel {panelIndex + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 场景描述 */}
+              {taskDetails.scene_descriptions && (
+                <div>
+                  <h4 style={{ 
+                    margin: '15px 0 10px 0', 
+                    fontSize: '14px', 
+                    fontWeight: '600',
+                    color: '#333'
+                  }}>
+                    Scene Descriptions
+                  </h4>
+                  <div style={{
+                    padding: '12px',
+                    backgroundColor: 'white',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    lineHeight: '1.5',
+                    color: '#555',
+                    maxHeight: '200px',
+                    overflowY: 'auto'
+                  }}>
+                    {taskDetails.scene_descriptions}
+                  </div>
+                </div>
+              )}
+
+              {/* 查看完整任务按钮 */}
+              <div style={{ marginTop: '15px', textAlign: 'center' }}>
+                <button 
+                  onClick={handleViewTaskClick}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '13px',
+                    backgroundColor: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  查看完整任务
+                </button>
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+              无法加载任务详情
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
