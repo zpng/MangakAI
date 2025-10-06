@@ -1,238 +1,370 @@
-# MangakAI - 前后端分离版本
+# MangakAI - AI-Powered Manga Generation Platform
 
-Transform your stories into manga panels with AI and custom style preferences!
+Transform your stories into manga panels with AI! MangakAI is a modern, scalable platform that uses advanced AI to generate beautiful manga-style illustrations from text stories.
 
-## 项目结构
+## 🌟 Features
 
-这是一个前后端分离的漫画生成应用：
+### Core Features
+- **📝 Story-to-Manga Generation**: Convert text stories into visual manga panels
+- **🎨 Customizable Art Styles**: Multiple art styles, moods, and visual preferences
+- **🔄 Panel Regeneration**: Modify and regenerate specific panels with custom requests
+- **📁 File Upload Support**: Upload .txt files for batch processing
+- **📄 PDF Export**: Export completed manga as PDF files
 
-- **后端**: FastAPI服务器 (Python)
-- **前端**: React应用 (JavaScript/Vite)
+### New Async Features (v2.0)
+- **⚡ Asynchronous Processing**: Long-running tasks don't block the UI
+- **📡 Real-time Progress Updates**: WebSocket-based live progress tracking
+- **📊 Task Management**: View task history and manage multiple generations
+- **☁️ Cloud Storage Integration**: Reliable image storage with S3/OSS support
+- **🔄 Automatic Retry**: Robust error handling and task recovery
+- **📈 Monitoring & Metrics**: Comprehensive system monitoring with Prometheus
 
-## 功能特性
+## 🏗️ Architecture
 
-- 📝 **文本输入生成**: 直接输入故事文本生成漫画
-- 📁 **文件上传生成**: 上传.txt文件生成漫画
-- 🎨 **风格自定义**: 多种艺术风格、情绪、色彩等选项
-- 🔄 **面板重新生成**: 对特定面板进行修改和重新生成
-- 📥 **PDF导出**: 将生成的漫画导出为PDF文件
-- 🎯 **示例展示**: 内置示例故事和漫画面板
+MangakAI v2.0 features a modern, scalable architecture:
 
-## 环境要求
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   React Frontend│    │  FastAPI Server │    │   Celery Workers│
+│                 │◄──►│                 │◄──►│                 │
+│ - Real-time UI  │    │ - REST API      │    │ - Async Tasks   │
+│ - WebSocket     │    │ - WebSocket     │    │ - Image Gen     │
+│ - Task History  │    │ - Task Mgmt     │    │ - Progress      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │              ┌─────────────────┐              │
+         │              │   Redis Queue   │              │
+         └──────────────►│                 │◄─────────────┘
+                        │ - Task Queue    │
+                        │ - Progress      │
+                        │ - Caching       │
+                        └─────────────────┘
+                                 │
+                        ┌─────────────────┐
+                        │   PostgreSQL    │
+                        │                 │
+                        │ - Task Metadata │
+                        │ - User Sessions │
+                        │ - Panel Data    │
+                        └─────────────────┘
+```
 
-### 后端
+## 🚀 Quick Start
+
+### Prerequisites
 - Python 3.11+
-- 虚拟环境 (推荐使用 uv 或 venv)
+- Node.js 16+
+- Redis (for task queue)
+- PostgreSQL (for data persistence)
+- Docker (optional, for easy setup)
 
-### 前端
-- Node.js 20.19+ 或 22.12+
-- npm 或 yarn
-
-## 快速开始 (推荐使用 Makefile)
-
-### 1. 一键安装和启动
-
+### Option 1: Automated Setup (Recommended)
 ```bash
-# 克隆项目
-git clone <repository-url>
+# Clone the repository
+git clone https://github.com/your-username/MangakAI.git
 cd MangakAI
 
-# 设置环境变量
+# Run the setup script
+./scripts/setup.sh
+
+# Edit environment variables
 cp .env.example .env
-# 编辑 .env 文件，添加你的 GEMINI_API_KEY
-
-# 安装所有依赖
-make install
-
-# 启动前后端服务器
-make dev
+# Edit .env with your API keys and configuration
 ```
 
-### 2. 常用 Makefile 命令
+### Option 2: Manual Setup
 
+#### 1. Backend Setup
 ```bash
-# 查看所有可用命令
-make help
+# Install Python dependencies
+pip install uv  # Modern Python package manager
+uv sync
 
-# 安装依赖
-make install              # 安装前后端所有依赖
-make install-backend      # 仅安装后端依赖
-make install-frontend     # 仅安装前端依赖
+# Setup database
+# Create PostgreSQL database 'mangakai'
+# Start Redis server
 
-# 开发环境
-make dev                  # 同时启动前后端 (推荐)
-make dev-backend          # 仅启动后端 (端口 8000)
-make dev-frontend         # 仅启动前端 (端口 5173)
+# Run database migrations
+uv run alembic upgrade head
 
-# 构建和部署
-make build                # 构建前端生产版本
-make docker-up            # 使用 Docker Compose 启动
-make docker-down          # 停止 Docker 服务
-
-# 工具命令
-make status               # 查看服务运行状态
-make stop                 # 停止所有服务
-make clean                # 清理构建文件
+# Start the backend server
+uv run uvicorn server:app --reload
 ```
 
-### 3. 手动安装和运行
-
-如果不使用 Makefile，也可以手动执行：
-
-#### 后端设置
-
+#### 2. Start Celery Workers
 ```bash
-# 创建虚拟环境 (使用 uv)
-uv venv
-source .venv/bin/activate  # Linux/Mac
-# 或
-.venv\Scripts\activate     # Windows
+# In a new terminal
+uv run celery -A celery_app worker --loglevel=info
 
-# 安装依赖
-uv pip install -e .
+# Optional: Start Celery Beat for scheduled tasks
+uv run celery -A celery_app beat --loglevel=info
 
-# 启动后端服务器
-uvicorn server:app --host 0.0.0.0 --port 8000
+# Optional: Start Flower for monitoring
+uv run celery -A celery_app flower
 ```
 
-后端服务器将在 http://localhost:8000 运行
-
-#### 前端设置
-
+#### 3. Frontend Setup
 ```bash
-# 进入前端目录
 cd frontend
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
 npm run dev
 ```
 
-前端应用将在 http://localhost:5173 运行
-
-### 3. 生产环境部署
-
-#### 后端部署
+### Option 3: Docker Setup
 ```bash
-# 使用 gunicorn 部署
-pip install gunicorn
-gunicorn server:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+# Start all services with Docker Compose
+docker-compose up -d
 
-# 或使用 Docker
-docker build -t mangakai-backend .
-docker run -p 8000:8000 mangakai-backend
+# Run database migrations
+docker-compose exec backend alembic upgrade head
 ```
 
-#### 前端部署
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env` file based on `.env.example`:
+
 ```bash
-# 构建生产版本
-npm run build
-
-# 部署到静态文件服务器 (nginx, Apache, 或 CDN)
-# 构建文件位于 dist/ 目录
-```
-
-## API 文档
-
-后端提供完整的 REST API，启动后端服务器后访问：
-- API 文档: http://localhost:8000/docs
-- 交互式 API: http://localhost:8000/redoc
-
-### 主要 API 端点
-
-- `GET /api/style-options` - 获取所有样式选项
-- `POST /api/generate-manga` - 从文本生成漫画
-- `POST /api/generate-manga-from-file` - 从文件生成漫画
-- `POST /api/regenerate-panel` - 重新生成特定面板
-- `POST /api/create-pdf` - 创建PDF文件
-- `GET /api/examples` - 获取示例列表
-- `GET /api/examples/{name}` - 获取特定示例
-
-## 配置说明
-
-### 环境变量 (.env)
-
-```env
+# AI API Configuration
 GEMINI_API_KEY=your_gemini_api_key_here
-TEMPLATE_PATH=data/templates/template.png
-OUTPUT_DIR=data/output
-STORIES_DIR=data/stories
-IMAGE_MODEL_NAME=gemini-2.5-flash-image-preview
-SCENE_MODEL_NAME=gemini-2.0-flash
+
+# Database Configuration
+DATABASE_URL=postgresql://mangakai:password@localhost:5432/mangakai
+REDIS_URL=redis://localhost:6379/0
+
+# Storage Configuration
+STORAGE_TYPE=local  # Options: local, s3
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+S3_BUCKET=your-s3-bucket-name
+
+# Application Configuration
+ENVIRONMENT=development
+LOG_LEVEL=INFO
+CORS_ORIGINS=http://localhost:5173
 ```
 
-### 前端配置
+### API Keys Required
+- **Gemini API Key**: Get from [Google AI Studio](https://makersuite.google.com/app/apikey)
+- **AWS Credentials**: (Optional) For S3 storage integration
 
-前端默认连接到 `http://localhost:8000` 的后端API。如需修改，请编辑 `frontend/src/App.jsx` 中的 `API_BASE_URL` 常量。
+## 📖 Usage
 
-## 项目文件结构
+### Web Interface
+1. Open http://localhost:5173 in your browser
+2. Choose between text input or file upload
+3. Customize art style, mood, and other preferences
+4. Click "Generate Manga" and watch real-time progress
+5. View generated panels and regenerate specific ones if needed
+6. Export as PDF when satisfied
 
+### API Usage
+
+#### Async Manga Generation
+```python
+import requests
+
+# Create async task
+response = requests.post('http://localhost:8000/api/async/generate-manga', json={
+    'story_text': 'Your story here...',
+    'num_scenes': 5,
+    'art_style': 'Anime/Manga',
+    'mood': 'Adventurous'
+})
+
+task_id = response.json()['task_id']
+
+# Check task status
+status_response = requests.get(f'http://localhost:8000/api/async/task/{task_id}/status')
+print(status_response.json())
+```
+
+#### WebSocket for Real-time Updates
+```javascript
+const ws = new WebSocket('ws://localhost:8000/ws/your-session-id');
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'progress_update') {
+        console.log('Progress:', data.data.progress + '%');
+        console.log('Status:', data.data.message);
+    }
+};
+
+// Subscribe to task updates
+ws.send(JSON.stringify({
+    type: 'subscribe_task',
+    task_id: 'your-task-id'
+}));
+```
+
+## 🛠️ Development
+
+### Project Structure
 ```
 MangakAI/
-├── server.py              # FastAPI 后端服务器
-├── manga.py               # 漫画生成核心逻辑
-├── utils.py               # 工具函数和提示模板
-├── app.py                 # 原始 Gradio 应用 (已弃用)
-├── pyproject.toml         # Python 依赖配置
-├── data/                  # 数据目录
-│   ├── examples/          # 示例漫画
-│   ├── output/            # 生成的漫画输出
-│   └── templates/         # 漫画模板
-└── frontend/              # React 前端应用
-    ├── src/
-    │   ├── App.jsx        # 主应用组件
-    │   ├── App.css        # 样式文件
-    │   └── main.jsx       # 入口文件
-    ├── package.json       # Node.js 依赖
-    └── vite.config.js     # Vite 配置
+├── server.py              # FastAPI application
+├── celery_app.py          # Celery configuration
+├── database.py            # Database setup
+├── models/                # SQLAlchemy models
+├── tasks/                 # Celery tasks
+├── api/                   # API endpoints
+├── storage/               # Cloud storage integration
+├── monitoring/            # Metrics and monitoring
+├── websocket_manager.py   # WebSocket management
+├── manga.py               # Core manga generation logic
+├── utils.py               # Utility functions
+├── frontend/              # React frontend
+├── docs/                  # Technical documentation
+├── k8s/                   # Kubernetes configurations
+├── scripts/               # Setup and utility scripts
+└── alembic/               # Database migrations
 ```
 
-## 开发说明
+### Adding New Features
 
-### 添加新功能
+1. **Backend API**: Add endpoints in `api/`
+2. **Async Tasks**: Add tasks in `tasks/`
+3. **Database Models**: Add models in `models/`
+4. **Frontend Components**: Add components in `frontend/src/components/`
+5. **Monitoring**: Add metrics in `monitoring/metrics.py`
 
-1. **后端**: 在 `server.py` 中添加新的API端点
-2. **前端**: 在 `frontend/src/App.jsx` 中添加对应的UI组件和API调用
-
-### 样式自定义
-
-- 后端样式选项在 `utils.py` 中定义
-- 前端样式在 `frontend/src/App.css` 中定义
-
-### 调试
-
-- 后端日志: 查看终端输出或配置日志文件
-- 前端调试: 使用浏览器开发者工具
-
-## 故障排除
-
-### 常见问题
-
-1. **CORS 错误**: 确保后端 CORS 配置正确
-2. **API 连接失败**: 检查后端服务器是否运行在正确端口
-3. **图片加载失败**: 确保静态文件服务配置正确
-4. **Node.js 版本警告**: 升级到 Node.js 20.19+ 或 22.12+
-
-### 日志查看
-
+### Running Tests
 ```bash
-# 后端日志
-tail -f logs/server.log
+# Backend tests
+uv run pytest
 
-# 前端开发服务器日志
-# 查看终端输出
+# Frontend tests
+cd frontend && npm test
+
+# Integration tests
+uv run pytest tests/integration/
 ```
 
-## 许可证
+## 📊 Monitoring
 
-[添加你的许可证信息]
+### Built-in Monitoring
+- **Prometheus Metrics**: http://localhost:8001/metrics
+- **Flower (Celery)**: http://localhost:5555
+- **Health Checks**: http://localhost:8000/health
 
-## 贡献
+### Key Metrics
+- Request rate and response time
+- Task success/failure rates
+- Queue lengths and processing times
+- WebSocket connection counts
+- Storage operations and sizes
 
-欢迎提交 Issue 和 Pull Request！
+## 🚀 Deployment
 
-## 联系方式
+### Production Deployment
 
-[添加联系信息]
+See detailed deployment guides in `docs/`:
+- [Overseas Deployment Guide](docs/overseas-deployment-guide.md)
+- [Technical Solution](docs/technical-solution.md)
+- [Monitoring Guide](docs/monitoring-operations-guide.md)
+
+### Quick Production Setup
+```bash
+# Using Docker Compose
+docker-compose -f docker-compose.prod.yml up -d
+
+# Using Kubernetes
+kubectl apply -f k8s/production/
+```
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Failed**
+   ```bash
+   # Check PostgreSQL is running
+   pg_isready -h localhost -p 5432
+   
+   # Check connection string in .env
+   echo $DATABASE_URL
+   ```
+
+2. **Redis Connection Failed**
+   ```bash
+   # Check Redis is running
+   redis-cli ping
+   
+   # Check Redis URL in .env
+   echo $REDIS_URL
+   ```
+
+3. **Celery Tasks Not Processing**
+   ```bash
+   # Check Celery worker is running
+   uv run celery -A celery_app inspect active
+   
+   # Check queue status
+   uv run celery -A celery_app inspect stats
+   ```
+
+4. **WebSocket Connection Issues**
+   - Check CORS settings in server.py
+   - Verify WebSocket URL in frontend
+   - Check firewall/proxy settings
+
+### Debug Mode
+```bash
+# Enable debug logging
+export LOG_LEVEL=DEBUG
+
+# Enable SQL query logging
+export SQL_DEBUG=true
+
+# Start with debug mode
+uv run uvicorn server:app --reload --log-level debug
+```
+
+## 📚 Documentation
+
+- [Technical Architecture](docs/technical-solution.md)
+- [Async Implementation Guide](docs/async-solution-implementation.md)
+- [Deployment Guide](docs/overseas-deployment-guide.md)
+- [Monitoring & Operations](docs/monitoring-operations-guide.md)
+- [API Documentation](http://localhost:8000/docs) (when server is running)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and add tests
+4. Run tests: `uv run pytest`
+5. Commit your changes: `git commit -m 'Add amazing feature'`
+6. Push to the branch: `git push origin feature/amazing-feature`
+7. Open a Pull Request
+
+### Development Guidelines
+- Follow PEP 8 for Python code
+- Use TypeScript for new frontend components
+- Add tests for new features
+- Update documentation as needed
+- Use conventional commit messages
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Google Gemini API for AI image generation
+- FastAPI for the excellent web framework
+- Celery for robust task processing
+- React for the frontend framework
+- All contributors and users of MangakAI
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/your-username/MangakAI/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-username/MangakAI/discussions)
+- **Documentation**: [docs/](docs/)
+
+---
+
+**MangakAI v2.0** - Transform your imagination into visual stories with the power of AI! 🎨✨

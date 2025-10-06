@@ -7,6 +7,14 @@ from typing import Optional, List, Dict, Any
 import os
 import shutil
 import tempfile
+import logging
+
+# Import new async components
+from database import init_db, check_db_connection
+from api.websocket import router as websocket_router
+from api.async_manga import router as async_manga_router
+
+# Import legacy components for backward compatibility
 from manga import (
     generate_manga_interface, 
     generate_manga_from_file_interface,
@@ -18,7 +26,15 @@ from manga import (
 from utils import ART_STYLES, MOOD_OPTIONS, COLOR_PALETTES, CHARACTER_STYLES, LINE_STYLES, COMPOSITION_STYLES
 import json
 
-app = FastAPI(title="MangakAI API", description="Transform your stories into manga panels with AI")
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI(
+    title="MangakAI API", 
+    description="Transform your stories into manga panels with AI - Now with async processing!",
+    version="2.0.0"
+)
 
 # CORS middleware to allow frontend access
 app.add_middleware(
@@ -29,8 +45,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include new async routers
+app.include_router(websocket_router)
+app.include_router(async_manga_router)
+
 # Serve static files (generated images, etc.)
 app.mount("/static", StaticFiles(directory="data"), name="static")
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize application on startup"""
+    try:
+        # Check database connection
+        if check_db_connection():
+            logger.info("Database connection successful")
+            # Initialize database tables
+            init_db()
+            logger.info("Database initialized successfully")
+        else:
+            logger.error("Database connection failed")
+    except Exception as e:
+        logger.error(f"Startup error: {str(e)}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    logger.info("Application shutting down")
+
+# Health check endpoints
+@app.get("/health")
+async def health_check():
+    """Application health check"""
+    db_healthy = check_db_connection()
+    
+    return {
+        "status": "healthy" if db_healthy else "unhealthy",
+        "database": "connected" if db_healthy else "disconnected",
+        "version": "2.0.0"
+    }
+
+@app.get("/ready")
+async def readiness_check():
+    """Readiness check for Kubernetes"""
+    db_healthy = check_db_connection()
+    
+    if not db_healthy:
+        raise HTTPException(status_code=503, detail="Database not ready")
+    
+    return {"status": "ready"}
+
+# Legacy API endpoints for backward compatibility
 
 # Pydantic models for request/response
 class GenerateMangaRequest(BaseModel):
