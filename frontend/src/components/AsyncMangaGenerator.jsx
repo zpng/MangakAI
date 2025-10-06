@@ -1,7 +1,3 @@
-/**
- * Async Manga Generator Component
- * Handles asynchronous manga generation with real-time progress updates
- */
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { Upload, Download, RefreshCw, FileText, Image, Wand2, X, CheckCircle, AlertCircle, Clock, BookOpen } from 'lucide-react';
@@ -604,17 +600,95 @@ const AsyncMangaGenerator = () => {
   };
 
   // Helper components
-  const StyleDropdown = ({ label, value, onChange, options }) => (
-    <div className="style-dropdown">
-      <label>{label}</label>
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="None">无</option>
-        {options && options.map(option => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
-    </div>
-  );
+  const StyleDropdown = ({ label, value, onChange, options }) => {
+    // 选项翻译映射
+    const optionTranslations = {
+      // 通用
+      'None': '无',
+      
+      // 艺术风格
+      'Anime/Manga': '动漫/漫画',
+      'Realistic': '写实',
+      'Cartoon': '卡通',
+      'Watercolor': '水彩',
+      'Oil Painting': '油画',
+      'Sketch': '素描',
+      'Digital Art': '数字艺术',
+      'Minimalist': '极简主义',
+      'Vintage': '复古',
+      'Comic Book': '漫画书',
+      
+      // 整体氛围
+      'Happy': '快乐',
+      'Sad': '悲伤',
+      'Mysterious': '神秘',
+      'Adventurous': '冒险',
+      'Romantic': '浪漫',
+      'Dark': '黑暗',
+      'Peaceful': '平静',
+      'Energetic': '充满活力',
+      'Nostalgic': '怀旧',
+      'Dramatic': '戏剧性',
+      
+      // 色彩风格
+      'Vibrant': '鲜艳',
+      'Pastel': '粉彩',
+      'Monochrome': '单色',
+      'Warm Tones': '暖色调',
+      'Cool Tones': '冷色调',
+      'Earth Tones': '大地色调',
+      'Neon': '霓虹',
+      'Sepia': '棕褐色',
+      'Black and White': '黑白',
+      'Sunset Colors': '日落色彩',
+      
+      // 角色风格
+      'Realistic Proportions': '写实比例',
+      'Chibi/Cute': '可爱/Q版',
+      'Heroic/Muscular': '英雄/肌肉',
+      'Elegant/Graceful': '优雅/优美',
+      'Cartoonish': '卡通化',
+      'Detailed Faces': '精细面部',
+      'Simple/Minimalist': '简单/极简',
+      'Expressive Eyes': '表情丰富的眼睛',
+      'Dynamic Poses': '动态姿势',
+      
+      // 线条风格
+      'Clean Lines': '干净线条',
+      'Sketchy': '素描风',
+      'Bold Outlines': '粗线条',
+      'Soft Lines': '柔和线条',
+      'Detailed Linework': '精细线条',
+      'Minimal Lines': '极简线条',
+      'Crosshatching': '交叉阴影',
+      'Smooth Curves': '平滑曲线',
+      'Sharp Angles': '尖锐角度',
+      
+      // 构图风格
+      'Close-up': '特写',
+      'Wide Shot': '远景',
+      'Action Scene': '动作场景',
+      'Portrait Style': '肖像风格',
+      'Landscape View': '风景视角',
+      'Dynamic Angle': '动态角度',
+      'Centered Composition': '居中构图',
+      'Rule of Thirds': '三分法则',
+      'Dramatic Perspective': '戏剧性透视'
+    };
+
+    return (
+      <div className="style-dropdown">
+        <label>{label}</label>
+        <select value={value} onChange={(e) => onChange(e.target.value)}>
+          {options && options.map(option => (
+            <option key={option} value={option}>
+              {optionTranslations[option] || option}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  };
 
   const ImageGallery = ({ images, title }) => (
     <div className="image-gallery">
