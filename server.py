@@ -249,11 +249,19 @@ async def generate_manga(request: GenerateMangaRequest):
                     api_path = f"/static/{relative_path}"
                     api_gallery_images.append(api_path)
         
+        # Convert scene_descriptions list to string if it's a list
+        scene_descriptions_str = ""
+        if scene_descriptions:
+            if isinstance(scene_descriptions, list):
+                scene_descriptions_str = "\n\n".join(scene_descriptions)
+            else:
+                scene_descriptions_str = str(scene_descriptions)
+        
         return MangaResponse(
             success=True,
             message="Manga generated successfully!",
             gallery_images=api_gallery_images,
-            scene_descriptions=scene_descriptions or ""
+            scene_descriptions=scene_descriptions_str
         )
     
     except Exception as e:
@@ -314,11 +322,19 @@ async def generate_manga_from_file(
                         api_path = f"/static/{relative_path}"
                         api_gallery_images.append(api_path)
             
+            # Convert scene_descriptions list to string if it's a list
+            scene_descriptions_str = ""
+            if scene_descriptions:
+                if isinstance(scene_descriptions, list):
+                    scene_descriptions_str = "\n\n".join(scene_descriptions)
+                else:
+                    scene_descriptions_str = str(scene_descriptions)
+            
             return MangaResponse(
                 success=True,
                 message="Manga generated successfully from file!",
                 gallery_images=api_gallery_images,
-                scene_descriptions=scene_descriptions or ""
+                scene_descriptions=scene_descriptions_str
             )
         
         finally:
