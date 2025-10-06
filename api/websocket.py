@@ -4,6 +4,7 @@ WebSocket API endpoints for real-time communication
 import json
 import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from sqlalchemy import text
 from websocket_manager import connection_manager
 from models.manga_models import UserSession
 from database import get_db_session
@@ -26,7 +27,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 session = UserSession(id=session_id)
                 db.add(session)
             else:
-                session.last_activity = db.execute("SELECT CURRENT_TIMESTAMP").scalar()
+                session.last_activity = db.execute(text("SELECT CURRENT_TIMESTAMP")).scalar()
             db.commit()
     except Exception as e:
         logger.warning(f"Failed to update session activity: {str(e)}")
