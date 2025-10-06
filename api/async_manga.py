@@ -6,6 +6,7 @@ import logging
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import get_db
 from models.manga_models import MangaTask, MangaPanel, UserSession, TaskStatus
@@ -58,7 +59,7 @@ def get_or_create_session(session_id: str, db: Session) -> UserSession:
         db.refresh(session)
     else:
         # Update last activity
-        session.last_activity = db.execute("SELECT CURRENT_TIMESTAMP").scalar()
+        session.last_activity = db.execute(text("SELECT CURRENT_TIMESTAMP")).scalar()
         db.commit()
     
     return session

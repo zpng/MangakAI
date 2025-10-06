@@ -5,6 +5,7 @@ import os
 import time
 import traceback
 import logging
+from sqlalchemy import text
 from celery import current_task
 from celery_app import celery_app
 from models.manga_models import MangaTask, MangaPanel, TaskStatus, PanelStatus
@@ -150,7 +151,7 @@ def generate_manga_task(self, task_id: str, story_text: str, parameters: dict):
             # Step 3: Complete task
             task.status = TaskStatus.COMPLETED
             task.progress = 100
-            task.completed_at = db.execute("SELECT CURRENT_TIMESTAMP").scalar()
+            task.completed_at = db.execute(text("SELECT CURRENT_TIMESTAMP")).scalar()
             db.commit()
             
             send_progress_update(task.user_session_id, {
