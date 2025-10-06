@@ -576,8 +576,7 @@ const AsyncMangaGenerator = () => {
       }
       setUploadedFile(file);
       setError('');
-      // Auto-generate from file
-      handleFileUpload(file);
+      // Remove auto-generation - user will click button to generate
     }
   };
 
@@ -775,83 +774,7 @@ const AsyncMangaGenerator = () => {
                 )}
               </button>
 
-              {isGenerating && isTaskActive(status) && (
-                <button
-                  onClick={handleCancelTask}
-                  style={{ 
-                    marginLeft: '10px', 
-                    padding: '12px 24px', 
-                    backgroundColor: '#dc3545', 
-                    color: 'white', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  取消任务
-                </button>
-              )}
 
-              {/* Error Display */}
-              {error && (
-                <div className="error-message" style={{ 
-                  marginTop: '20px',
-                  padding: '12px',
-                  backgroundColor: '#f8d7da',
-                  color: '#721c24',
-                  border: '1px solid #f5c6cb',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}>
-                  <AlertCircle size={16} style={{ marginRight: '8px' }} />
-                  {error}
-                </div>
-              )}
-
-              {/* Progress Section */}
-              {isGenerating && (
-                <div className="progress-section" style={{ marginTop: '20px' }}>
-                  <div className="progress-header" style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    marginBottom: '10px'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      {getStatusIcon(status)}
-                      <span style={{ marginLeft: '8px', fontWeight: '500' }}>任务进度</span>
-                    </div>
-                    <span style={{ fontSize: '14px', color: '#666' }}>{progress}%</span>
-                  </div>
-                  
-                  <div className="progress-bar" style={{
-                    width: '100%',
-                    height: '8px',
-                    backgroundColor: '#e9ecef',
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}>
-                    <div
-                      className="progress-fill"
-                      style={{ 
-                        width: `${progress}%`,
-                        height: '100%',
-                        backgroundColor: '#007bff',
-                        transition: 'width 0.3s ease'
-                      }}
-                    />
-                  </div>
-                  
-                  <div className="status-message" style={{ 
-                    marginTop: '8px',
-                    fontSize: '14px',
-                    color: '#666'
-                  }}>
-                    {statusMessage}
-                  </div>
-                </div>
-              )}
 
 
 
@@ -942,6 +865,125 @@ const AsyncMangaGenerator = () => {
                   />
                 </div>
               </div>
+
+              {/* Generate Button */}
+              <div className="generate-section" style={{ marginTop: '20px' }}>
+                <button 
+                  className="generate-btn"
+                  onClick={() => uploadedFile && handleFileUpload(uploadedFile)}
+                  disabled={isGenerating || !uploadedFile}
+                  style={{
+                    width: '100%',
+                    padding: '15px 20px',
+                    backgroundColor: uploadedFile ? '#007bff' : '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: uploadedFile ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {isGenerating ? (
+                    <>
+                      <RefreshCw className="spinning" size={20} />
+                      生成中...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 size={20} />
+                      {uploadedFile ? '生成漫画' : '请先上传文件'}
+                    </>
+                  )}
+                </button>
+
+                {isGenerating && isTaskActive(status) && (
+                  <button
+                    onClick={handleCancelTask}
+                    style={{ 
+                      marginTop: '10px',
+                      width: '100%',
+                      padding: '12px 20px', 
+                      backgroundColor: '#dc3545', 
+                      color: 'white', 
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}
+                  >
+                    取消任务
+                  </button>
+                )}
+              </div>
+
+              {/* Error Display */}
+              {error && (
+                <div className="error-message" style={{ 
+                  marginTop: '20px',
+                  padding: '12px',
+                  backgroundColor: '#f8d7da',
+                  color: '#721c24',
+                  border: '1px solid #f5c6cb',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}>
+                  <AlertCircle size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                  {error}
+                </div>
+              )}
+
+              {/* Progress Display */}
+              {isGenerating && (
+                <div className="progress-section" style={{ 
+                  marginTop: '20px',
+                  padding: '20px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                  border: '1px solid #e9ecef'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '10px'
+                  }}>
+                    <Clock size={16} style={{ marginRight: '8px', color: '#007bff' }} />
+                    <span style={{ fontSize: '14px', fontWeight: '500' }}>生成进度</span>
+                  </div>
+                  
+                  <div style={{
+                    width: '100%',
+                    height: '8px',
+                    backgroundColor: '#e9ecef',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <div
+                      className="progress-fill"
+                      style={{ 
+                        width: `${progress}%`,
+                        height: '100%',
+                        backgroundColor: '#007bff',
+                        transition: 'width 0.3s ease'
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="status-message" style={{ 
+                    marginTop: '8px',
+                    fontSize: '14px',
+                    color: '#666'
+                  }}>
+                    {statusMessage}
+                  </div>
+                </div>
+              )}
 
               {galleryImages.length > 0 && (
                 <ImageGallery images={galleryImages} title="Generated Manga Panels" />
