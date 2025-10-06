@@ -16,6 +16,13 @@ body {
   display: block;
 }
 
+/* Dark theme support for body */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  }
+}
+
 .app {
   max-width: 1200px;
   margin: 0 auto;
@@ -47,6 +54,14 @@ body {
   border-radius: 15px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   overflow: hidden;
+}
+
+/* Dark theme support for tab container */
+@media (prefers-color-scheme: dark) {
+  .tab-container {
+    background: #1a202c;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
 }
 
 /* Modal styles */
@@ -107,6 +122,32 @@ body {
   color: #333;
 }
 
+/* Dark theme support for modal */
+@media (prefers-color-scheme: dark) {
+  .manga-modal-content {
+    background: #1a202c;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
+  
+  .manga-modal-header {
+    background: #2d3748;
+    border-bottom: 1px solid #4a5568;
+  }
+  
+  .manga-modal-header h3 {
+    color: #e2e8f0;
+  }
+  
+  .modal-close-btn {
+    color: #a0aec0;
+  }
+  
+  .modal-close-btn:hover {
+    background: #4a5568;
+    color: #e2e8f0;
+  }
+}
+
 .manga-modal-body {
   display: flex;
   flex-direction: column;
@@ -127,6 +168,13 @@ body {
   min-height: 400px;
   max-height: calc(100vh - 200px);
   overflow: hidden;
+}
+
+/* Dark theme support for modal main panel */
+@media (prefers-color-scheme: dark) {
+  .modal-main-panel {
+    background: #2d3748;
+  }
 }
 
 .modal-main-image {
@@ -241,9 +289,40 @@ body {
   box-shadow: inset 0 -3px 0 #5a6fd8;
 }
 
+/* Dark theme support for tab buttons */
+@media (prefers-color-scheme: dark) {
+  .tab-buttons {
+    background: #2d3748;
+    border-bottom: 1px solid #4a5568;
+  }
+  
+  .tab-buttons button {
+    color: #a0aec0;
+  }
+  
+  .tab-buttons button:hover {
+    background: #4a5568;
+    color: #e2e8f0;
+  }
+  
+  .tab-buttons button.active {
+    background: #667eea;
+    color: white;
+    box-shadow: inset 0 -3px 0 #5a6fd8;
+  }
+}
+
 /* Tab content */
 .tab-content {
   padding: 30px;
+}
+
+/* Dark theme support for tab content */
+@media (prefers-color-scheme: dark) {
+  .tab-content {
+    background: #1a202c;
+    color: #e2e8f0;
+  }
 }
 
 /* Input sections */
@@ -275,6 +354,8 @@ body {
   font-family: inherit;
   resize: vertical;
   transition: border-color 0.3s ease;
+  background: white;
+  color: #495057;
 }
 
 .story-input textarea:focus,
@@ -282,6 +363,36 @@ body {
 .scene-descriptions textarea:focus {
   outline: none;
   border-color: #667eea;
+}
+
+/* Dark theme support for input elements */
+@media (prefers-color-scheme: dark) {
+  .story-input label,
+  .scenes-input label,
+  .additional-notes label {
+    color: #e2e8f0;
+  }
+  
+  .story-input textarea,
+  .additional-notes textarea,
+  .scene-descriptions textarea {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+  
+  .story-input textarea:focus,
+  .additional-notes textarea:focus,
+  .scene-descriptions textarea:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+  
+  .story-input textarea::placeholder,
+  .additional-notes textarea::placeholder,
+  .scene-descriptions textarea::placeholder {
+    color: #a0aec0;
+  }
 }
 
 .scenes-input {
@@ -314,6 +425,21 @@ body {
   min-width: 20px;
 }
 
+/* Dark theme support for range input */
+@media (prefers-color-scheme: dark) {
+  .scenes-input input[type="range"] {
+    background: #4a5568;
+  }
+  
+  .scenes-input input[type="range"]::-webkit-slider-thumb {
+    background: #667eea;
+  }
+  
+  .scenes-input span {
+    color: #667eea;
+  }
+}
+
 /* Style section */
 .style-section {
   margin-bottom: 30px;
@@ -323,6 +449,13 @@ body {
   margin-bottom: 20px;
   color: #495057;
   font-size: 1.2rem;
+}
+
+/* Dark theme support for style section */
+@media (prefers-color-scheme: dark) {
+  .style-section h3 {
+    color: #e2e8f0;
+  }
 }
 
 .style-grid {
@@ -463,6 +596,21 @@ body {
   display: block;
 }
 
+/* Dark theme support for image gallery */
+@media (prefers-color-scheme: dark) {
+  .image-gallery h3 {
+    color: #e2e8f0;
+  }
+  
+  .gallery-item {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  }
+  
+  .gallery-item:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  }
+}
+
 .panel-number {
   position: absolute;
   top: 10px;
@@ -496,6 +644,17 @@ body {
   margin-bottom: 8px;
   font-weight: 600;
   color: #495057;
+}
+
+/* Dark theme support for scene descriptions and file upload */
+@media (prefers-color-scheme: dark) {
+  .scene-descriptions h3 {
+    color: #e2e8f0;
+  }
+  
+  .file-upload label {
+    color: #e2e8f0;
+  }
 }
 
 .file-upload input[type="file"] {
@@ -741,6 +900,26 @@ body {
   color: #495057;
 }
 
+/* Dark theme support for story sections */
+@media (prefers-color-scheme: dark) {
+  .story-title-section label,
+  .story-text-section label {
+    color: #e2e8f0;
+  }
+  
+  .story-title-section input[type="text"] {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+  
+  .story-text-section textarea {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+}
+
 .how-it-works {
   background: #f8f9fa;
   padding: 20px;
@@ -771,6 +950,26 @@ body {
   color: #495057;
 }
 
+/* Dark theme support for how-it-works */
+@media (prefers-color-scheme: dark) {
+  .how-it-works {
+    background: #2d3748;
+    border-left: 4px solid #667eea;
+  }
+  
+  .how-it-works h4 {
+    color: #e2e8f0;
+  }
+  
+  .how-it-works li {
+    color: #a0aec0;
+  }
+  
+  .how-it-works strong {
+    color: #e2e8f0;
+  }
+}
+
 .examples-right-panel {
   display: flex;
   flex-direction: column;
@@ -798,6 +997,23 @@ body {
   color: #495057;
   font-size: 1rem;
   font-weight: 600;
+}
+
+/* Dark theme support for manga display */
+@media (prefers-color-scheme: dark) {
+  .manga-display {
+    border: 2px solid #4a5568;
+    background: #1a202c;
+  }
+  
+  .manga-header {
+    background: #2d3748;
+    border-bottom: 1px solid #4a5568;
+  }
+  
+  .manga-header h4 {
+    color: #e2e8f0;
+  }
 }
 
 .manga-controls {
@@ -882,6 +1098,30 @@ body {
   display: block;
 }
 
+/* Dark theme support for manga controls and content */
+@media (prefers-color-scheme: dark) {
+  .control-btn {
+    background: #4a5568;
+    color: #e2e8f0;
+  }
+  
+  .control-btn:hover {
+    background: #2d3748;
+  }
+  
+  .main-manga-panel {
+    background: #2d3748;
+  }
+  
+  .thumbnail-item {
+    border: 2px solid #4a5568;
+  }
+  
+  .thumbnail-item:hover {
+    border-color: #667eea;
+  }
+}
+
 .thumbnail-item.active {
   border-color: #667eea;
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
@@ -937,6 +1177,33 @@ body {
   font-family: inherit;
   background: #f8f9fa;
   resize: vertical;
+}
+
+/* Dark theme support for remaining elements */
+@media (prefers-color-scheme: dark) {
+  .no-panels {
+    color: #a0aec0;
+  }
+  
+  .loading-examples {
+    color: #a0aec0;
+  }
+  
+  .example-story h4 {
+    color: #e2e8f0;
+  }
+  
+  .example-story input[type="text"] {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+  
+  .example-story textarea {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
 }
 
 /* Responsive design */
