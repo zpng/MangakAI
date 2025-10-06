@@ -403,11 +403,11 @@ async def create_pdf_from_task(task_id: str, db: Session = Depends(get_db)):
         for panel in panels:
             logger.info(f"Processing panel {panel.panel_number}, image_url: {panel.image_url}")
             
-            # Try to use image_url first (cloud storage), then fallback to image_path
+            # Try to find the actual image file
             image_source = None
+            
+            # First, try to use image_url (cloud storage path)
             if panel.image_url:
-                # For cloud storage URLs, we need to download or use the URL directly
-                # For now, let's try to construct the local path from the URL
                 if panel.image_url.startswith('/static/'):
                     # Convert static URL to local file path
                     local_path = panel.image_url.replace('/static/', 'data/')
@@ -416,8 +416,14 @@ async def create_pdf_from_task(task_id: str, db: Session = Depends(get_db)):
                         logger.info(f"Using local file from static URL: {local_path}")
                     else:
                         logger.warning(f"Local file not found for static URL: {local_path}")
+                elif panel.image_url.startswith('http'):
+                    # This is a remote URL, we would need to download it
+                    logger.info(f"Panel {panel.panel_number} has remote URL: {panel.image_url}")
                 else:
-                    logger.info(f"Panel {panel.panel_number} has cloud URL: {panel.image_url}")
+                    # Try as direct file path
+                    if os.path.exists(panel.image_url):
+                        image_source = panel.image_url
+                        logger.info(f"Using direct path from image_url: {panel.image_url}")
             
             # Fallback to image_path if available
             if not image_source and panel.image_path and os.path.exists(panel.image_path):
