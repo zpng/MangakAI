@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mangakai-prod
+  labels:
+    name: mangakai-prod
+    environment: production
+    app: mangakai
+  annotations:
+    description: "MangakAI Production Environment"

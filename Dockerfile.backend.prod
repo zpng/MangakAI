@@ -1,0 +1,106 @@
+# 多阶段构建 Dockerfile for MangakAI Backend
+FROM python:3.11-slim as base
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    libpq-dev \
+    libmagic1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建应用用户
+RUN groupadd -r mangakai && useradd -r -g mangakai mangakai
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制依赖文件
+COPY pyproject.toml uv.lock ./
+
+# 安装 uv 包管理器
+RUN pip install uv
+
+# 开发阶段
+FROM base as development
+
+# 安装开发依赖
+RUN uv sync --dev
+
+# 复制源代码
+COPY . .
+
+# 设置权限
+RUN chown -R mangakai:mangakai /app
+
+USER mangakai
+
+# 暴露端口
+EXPOSE 8000
+
+# 启动命令
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# 生产构建阶段
+FROM base as builder
+
+# 安装生产依赖
+RUN uv sync --no-dev
+
+# 复制源代码
+COPY . .
+
+# 编译 Python 字节码
+RUN python -m compileall .
+
+# 生产阶段
+FROM python:3.11-slim as production
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    PATH="/app/.venv/bin:$PATH"
+
+# 安装运行时依赖
+RUN apt-get update && apt-get install -y \
+    libpq5 \
+    libmagic1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# 创建应用用户
+RUN groupadd -r mangakai && useradd -r -g mangakai mangakai
+
+# 设置工作目录
+WORKDIR /app
+
+# 从构建阶段复制应用
+COPY --from=builder --chown=mangakai:mangakai /app /app
+
+# 创建必要的目录
+RUN mkdir -p /app/data /app/logs && \
+    chown -R mangakai:mangakai /app/data /app/logs
+
+# 健康检查脚本
+COPY --chown=mangakai:mangakai scripts/healthcheck.py /app/healthcheck.py
+
+# 切换到应用用户
+USER mangakai
+
+# 暴露端口
+EXPOSE 8000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python /app/healthcheck.py
+
+# 启动命令
+CMD ["gunicorn", "server:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info"]
