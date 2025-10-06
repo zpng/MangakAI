@@ -1290,6 +1290,70 @@ const TaskHistoryItem = ({ task, index, onViewTask, onCreatePDF }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [pdfStatus, setPdfStatus] = useState('');
   const [pdfPath, setPdfPath] = useState(null);
+  
+  // Panel regeneration states
+  const [showRegeneratePanel, setShowRegeneratePanel] = useState(false);
+  const [selectedPanelNumber, setSelectedPanelNumber] = useState(null);
+  const [modificationRequest, setModificationRequest] = useState('');
+  const [referenceImage, setReferenceImage] = useState(null);
+  const [replaceOriginal, setReplaceOriginal] = useState(false);
+  const [regenerationStatus, setRegenerationStatus] = useState('');
+  const referenceInputRef = useRef(null);
+
+  // Panel regeneration functions
+  const handlePanelSelect = (panelNumber) => {
+    setSelectedPanelNumber(panelNumber);
+    setShowRegeneratePanel(true);
+  };
+
+  const handleReferenceImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setReferenceImage(file);
+    }
+  };
+
+  const handleRegeneratePanel = async () => {
+    if (!selectedPanelNumber || !modificationRequest.trim()) {
+      setRegenerationStatus('请选择面板并输入修改要求');
+      return;
+    }
+
+    try {
+      setRegenerationStatus('正在重新生成面板...');
+      
+      const formData = new FormData();
+      formData.append('modification_request', modificationRequest);
+      formData.append('replace_original', replaceOriginal);
+      
+      if (referenceImage) {
+        formData.append('reference_image', referenceImage);
+      }
+
+      const response = await regeneratePanel(task.task_id, selectedPanelNumber, formData);
+      
+      setRegenerationStatus(`面板 ${selectedPanelNumber} 重新生成任务已启动！`);
+      
+      // Reset form
+      setModificationRequest('');
+      setReferenceImage(null);
+      setReplaceOriginal(false);
+      if (referenceInputRef.current) {
+        referenceInputRef.current.value = '';
+      }
+      
+      // Refresh task details after a short delay
+      setTimeout(() => {
+        if (taskDetails) {
+          handleToggleExpand({ stopPropagation: () => {} });
+        }
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Panel regeneration failed:', error);
+      setRegenerationStatus('面板重新生成失败');
+    }
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -1500,43 +1564,379 @@ const TaskHistoryItem = ({ task, index, onViewTask, onCreatePDF }) => {
                   }}>
                     Generated Manga Panels
                   </h4>
+                  
+                  {/* Group panels by panel number to show originals and regenerated versions together */}
+                  {(() => {
+                    const panelGroups = {};
+                    taskDetails.panels.forEach(panel => {
+                      if (!panelGroups[panel.panel_number]) {
+                        panelGroups[panel.panel_number] = [];
+                      }
+                      panelGroups[panel.panel_number].push(panel);
+                    });
+                    
+                    return Object.keys(panelGroups).sort((a, b) => parseInt(a) - parseInt(b)).map(panelNumber => (
+                      <div key={panelNumber} style={{ marginBottom: '20px' }}>
+                        <h5 style={{ 
+                          margin: '10px 0 8px 0', 
+                          fontSize: '13px', 
+                          fontWeight: '600',
+                          color: '#555'
+                        }}>
+                          Panel {panelNumber}
+                        </h5>
+                        
+                        <div style={{
+                          display: 'flex',
+                          gap: '10px',
+                          padding: '10px',
+                          backgroundColor: 'white',
+                          borderRadius: '8px',
+                          border: '1px solid #e0e0e0',
+                          flexWrap: 'wrap'
+                        }}>
+                          {panelGroups[panelNumber]
+                            .sort((a, b) => a.is_regenerated - b.is_regenerated) // Original first, then regenerated
+                            .map((panel, versionIndex) => (
+                            <div key={panel.id} style={{
+                              textAlign: 'center',
+                              padding: '8px',
+                              border: selectedPanelNumber === panel.panel_number ? '2px solid #007bff' : '1px solid #ddd',
+                              borderRadius: '6px',
+                              backgroundColor: selectedPanelNumber === panel.panel_number ? '#e3f2fd' : '#fafafa',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              minWidth: '150px',
+                              position: 'relative'
+                            }}
+                            onClick={() => handlePanelSelect(panel.panel_number)}
+                            >
+                              <img 
+                                src={`http://localhost:8000${panel.image_url}`} 
+                                alt={`Panel ${panel.panel_number} ${panel.is_regenerated ? '(Regenerated)' : '(Original)'}`}
+                                style={{
+                                  width: '100%',
+                                  height: '120px',
+                                  objectFit: 'cover',
+                                  borderRadius: '4px',
+                                  marginBottom: '5px'
+                                }}
+                              />
+                              
+                              {/* Version label */}
+                              <div style={{ 
+                                fontSize: '11px', 
+                                color: selectedPanelNumber === panel.panel_number ? '#007bff' : '#666',
+                                fontWeight: selectedPanelNumber === panel.panel_number ? '600' : '500',
+                                marginBottom: '2px'
+                              }}>
+                                {panel.is_regenerated ? 'Regenerated' : 'Original'}
+                              </div>
+                              
+                              {/* Regeneration request info */}
+                              {panel.is_regenerated && panel.regeneration_request && (
+                                <div style={{ 
+                                  fontSize: '10px', 
+                                  color: '#28a745',
+                                  fontStyle: 'italic',
+                                  marginTop: '2px',
+                                  maxWidth: '140px',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                title={panel.regeneration_request}
+                                >
+                                  "{panel.regeneration_request}"
+                                </div>
+                              )}
+                              
+                              {/* Status indicator */}
+                              <div style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: panel.status === 'COMPLETED' ? '#28a745' : 
+                                               panel.status === 'FAILED' ? '#dc3545' : 
+                                               panel.status === 'REGENERATING' ? '#ffc107' : '#6c757d'
+                              }}
+                              title={`Status: ${panel.status}`}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Show regeneration history for this panel */}
+                        {panelGroups[panelNumber].filter(p => p.is_regenerated).length > 0 && (
+                          <div style={{
+                            marginTop: '8px',
+                            padding: '8px',
+                            backgroundColor: '#f8f9fa',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            color: '#666'
+                          }}>
+                            <strong>Regeneration History:</strong>
+                            <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px' }}>
+                              {panelGroups[panelNumber]
+                                .filter(p => p.is_regenerated)
+                                .map((panel, idx) => (
+                                <li key={panel.id} style={{ marginBottom: '2px' }}>
+                                  Version {idx + 2}: "{panel.regeneration_request}"
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ));
+                  })()}
+                  
+                  {/* Panel Regeneration Controls */}
+                  {showRegeneratePanel && selectedPanelNumber && (
+                    <div style={{
+                      marginTop: '20px',
+                      padding: '20px',
+                      backgroundColor: '#f8f9fa',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '8px'
+                    }}>
+                      <h4 style={{ 
+                        margin: '0 0 15px 0', 
+                        fontSize: '14px', 
+                        fontWeight: '600',
+                        color: '#333'
+                      }}>
+                        重新生成面板 {selectedPanelNumber}
+                      </h4>
+                      
+                      <div style={{ marginBottom: '15px' }}>
+                        <label style={{ 
+                          display: 'block', 
+                          marginBottom: '5px', 
+                          fontSize: '13px', 
+                          fontWeight: '500' 
+                        }}>
+                          修改要求
+                        </label>
+                        <textarea
+                          value={modificationRequest}
+                          onChange={(e) => setModificationRequest(e.target.value)}
+                          placeholder="描述你想要如何修改这个面板..."
+                          rows={3}
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                            resize: 'vertical'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ marginBottom: '15px' }}>
+                        <label style={{ 
+                          display: 'block', 
+                          marginBottom: '5px', 
+                          fontSize: '13px', 
+                          fontWeight: '500' 
+                        }}>
+                          参考图片 (可选)
+                        </label>
+                        <input
+                          ref={referenceInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleReferenceImageSelect}
+                          style={{
+                            width: '100%',
+                            padding: '6px',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                            fontSize: '12px'
+                          }}
+                        />
+                        {referenceImage && (
+                          <div style={{ 
+                            marginTop: '5px', 
+                            fontSize: '12px', 
+                            color: '#666' 
+                          }}>
+                            已选择: {referenceImage.name}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ marginBottom: '15px' }}>
+                        <label style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          fontSize: '13px',
+                          cursor: 'pointer'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={replaceOriginal}
+                            onChange={(e) => setReplaceOriginal(e.target.checked)}
+                            style={{ marginRight: '8px' }}
+                          />
+                          替换原始面板
+                        </label>
+                      </div>
+
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: '10px', 
+                        justifyContent: 'flex-end' 
+                      }}>
+                        <button 
+                          onClick={() => {
+                            setShowRegeneratePanel(false);
+                            setSelectedPanelNumber(null);
+                            setModificationRequest('');
+                            setReferenceImage(null);
+                            setReplaceOriginal(false);
+                            setRegenerationStatus('');
+                          }}
+                          style={{
+                            padding: '8px 16px',
+                            fontSize: '13px',
+                            backgroundColor: '#6c757d',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          取消
+                        </button>
+                        <button 
+                          onClick={handleRegeneratePanel}
+                          disabled={!modificationRequest.trim()}
+                          style={{
+                            padding: '8px 16px',
+                            fontSize: '13px',
+                            backgroundColor: !modificationRequest.trim() ? '#6c757d' : '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: !modificationRequest.trim() ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px'
+                          }}
+                        >
+                          <RefreshCw size={14} />
+                          重新生成面板
+                        </button>
+                      </div>
+
+                      {regenerationStatus && (
+                        <div style={{ 
+                          marginTop: '10px', 
+                          padding: '8px', 
+                          backgroundColor: regenerationStatus.includes('失败') ? '#f8d7da' : '#d4edda',
+                          color: regenerationStatus.includes('失败') ? '#721c24' : '#155724',
+                          border: `1px solid ${regenerationStatus.includes('失败') ? '#f5c6cb' : '#c3e6cb'}`,
+                          borderRadius: '4px',
+                          fontSize: '12px'
+                        }}>
+                          {regenerationStatus}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 大图展示区域 */}
+              {taskDetails.panels && taskDetails.panels.length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <h4 style={{ 
+                    margin: '15px 0 10px 0', 
+                    fontSize: '14px', 
+                    fontWeight: '600',
+                    color: '#333'
+                  }}>
+                    完整漫画展示
+                  </h4>
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-                    gap: '10px',
-                    padding: '10px',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                    gap: '20px',
+                    padding: '20px',
                     backgroundColor: 'white',
                     borderRadius: '8px',
                     border: '1px solid #e0e0e0'
                   }}>
-                    {taskDetails.panels.map((panel, panelIndex) => (
-                      <div key={panelIndex} style={{
-                        textAlign: 'center',
-                        padding: '8px',
-                        border: '1px solid #ddd',
-                        borderRadius: '6px',
-                        backgroundColor: '#fafafa'
-                      }}>
-                        <img 
-                          src={`http://localhost:8000${panel.image_url}`} 
-                          alt={`Panel ${panelIndex + 1}`}
-                          style={{
-                            width: '100%',
-                            height: '120px',
-                            objectFit: 'cover',
-                            borderRadius: '4px',
-                            marginBottom: '5px'
-                          }}
-                        />
-                        <div style={{ 
-                          fontSize: '11px', 
-                          color: '#666',
-                          fontWeight: '500'
-                        }}>
-                          Panel {panelIndex + 1}
-                        </div>
-                      </div>
-                    ))}
+                    {(() => {
+                      // Get the best panel for each panel number (prioritize regenerated)
+                      const panelGroups = {};
+                      taskDetails.panels.forEach(panel => {
+                        if (!panelGroups[panel.panel_number] || panel.is_regenerated) {
+                          panelGroups[panel.panel_number] = panel;
+                        }
+                      });
+                      
+                      return Object.keys(panelGroups)
+                        .sort((a, b) => parseInt(a) - parseInt(b))
+                        .map(panelNumber => {
+                          const panel = panelGroups[panelNumber];
+                          return (
+                            <div key={panel.id} style={{
+                              textAlign: 'center',
+                              padding: '10px',
+                              border: '1px solid #ddd',
+                              borderRadius: '8px',
+                              backgroundColor: '#fafafa'
+                            }}>
+                              <img 
+                                src={`http://localhost:8000${panel.image_url}`} 
+                                alt={`Panel ${panel.panel_number}`}
+                                style={{
+                                  width: '100%',
+                                  maxHeight: '400px',
+                                  objectFit: 'contain',
+                                  borderRadius: '4px',
+                                  marginBottom: '10px'
+                                }}
+                              />
+                              <div style={{ 
+                                fontSize: '14px', 
+                                fontWeight: '600',
+                                color: '#333',
+                                marginBottom: '5px'
+                              }}>
+                                Panel {panel.panel_number}
+                                {panel.is_regenerated && (
+                                  <span style={{ 
+                                    fontSize: '12px', 
+                                    color: '#28a745',
+                                    marginLeft: '8px',
+                                    fontWeight: 'normal'
+                                  }}>
+                                    (Regenerated)
+                                  </span>
+                                )}
+                              </div>
+                              {panel.scene_description && (
+                                <div style={{ 
+                                  fontSize: '12px', 
+                                  color: '#666',
+                                  lineHeight: '1.4',
+                                  textAlign: 'left'
+                                }}>
+                                  {panel.scene_description}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        });
+                    })()}
                   </div>
                 </div>
               )}
