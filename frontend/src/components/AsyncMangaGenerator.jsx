@@ -88,7 +88,7 @@ const AsyncMangaGenerator = () => {
 
   // UI states
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
 
   // Regeneration states
@@ -872,57 +872,39 @@ const AsyncMangaGenerator = () => {
               {/* Task History Section */}
               <div className="task-history-section" style={{ marginTop: '30px' }}>
                 <div className="task-history-header" style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
                   marginBottom: '15px'
                 }}>
                   <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>任务历史</h3>
-                  <button
-                    onClick={() => setShowHistory(!showHistory)}
-                    style={{
-                      padding: '6px 12px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid #ddd',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    {showHistory ? '隐藏' : '显示'} ({taskHistory.length})
-                  </button>
                 </div>
 
-                {showHistory && (
-                  <div className="task-history-list" style={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    backgroundColor: '#fafafa',
-                    maxHeight: '400px',
-                    overflowY: 'auto'
-                  }}>
-                    {taskHistory.length === 0 ? (
-                      <div style={{ 
-                        padding: '20px', 
-                        textAlign: 'center', 
-                        color: '#666',
-                        fontSize: '14px'
-                      }}>
-                        暂无任务历史
-                      </div>
-                    ) : (
-                      taskHistory.map((task, index) => (
-                        <TaskHistoryItem 
-                          key={task.task_id} 
-                          task={task} 
-                          index={index}
-                          onViewTask={(taskId) => handleViewTask(taskId)}
-                          onCreatePDF={(taskId) => handleCreatePDF(taskId)}
-                        />
-                      ))
-                    )}
-                  </div>
-                )}
+                <div className="task-history-list" style={{
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '8px',
+                  backgroundColor: '#fafafa',
+                  maxHeight: '400px',
+                  overflowY: 'auto'
+                }}>
+                  {taskHistory.length === 0 ? (
+                    <div style={{ 
+                      padding: '20px', 
+                      textAlign: 'center', 
+                      color: '#666',
+                      fontSize: '14px'
+                    }}>
+                      暂无任务历史
+                    </div>
+                  ) : (
+                    taskHistory.map((task, index) => (
+                      <TaskHistoryItem 
+                        key={task.task_id} 
+                        task={task} 
+                        index={index}
+                        onViewTask={(taskId) => handleViewTask(taskId)}
+                        onCreatePDF={(taskId) => handleCreatePDF(taskId)}
+                      />
+                    ))
+                  )}
+                </div>
               </div>
 
               {galleryImages.length > 0 && (
@@ -1113,40 +1095,7 @@ const AsyncMangaGenerator = () => {
               <h3>历史任务管理</h3>
               <p><strong>说明:</strong> 在这里查看和管理所有的漫画生成任务，并可以为已完成的任务创建PDF。</p>
               
-              <button 
-                className="pdf-btn"
-                onClick={handleCreatePDF}
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <>
-                    <RefreshCw className="spinning" size={20} />
-                    Creating PDF...
-                  </>
-                ) : (
-                  <>
-                    <Download size={20} />
-                    Create PDF
-                  </>
-                )}
-              </button>
 
-              {pdfStatus && (
-                <div className="status-message">
-                  <p>{pdfStatus}</p>
-                </div>
-              )}
-
-              {pdfPath && (
-                <div className="pdf-download">
-                  <a href={`http://localhost:8000${pdfPath}`} download>
-                    <button className="download-btn">
-                      <Download size={20} />
-                      Download PDF
-                    </button>
-                  </a>
-                </div>
-              )}
 
               {/* Task History Section */}
               <div className="task-history-section" style={{ marginTop: '30px' }}>
@@ -1683,8 +1632,8 @@ const TaskHistoryItem = ({ task, index, onViewTask, onCreatePDF }) => {
                 </div>
               )}
 
-              {/* 查看完整任务和创建PDF按钮 */}
-              <div style={{ marginTop: '15px', textAlign: 'center', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              {/* 查看完整任务按钮 */}
+              <div style={{ marginTop: '15px', textAlign: 'center' }}>
                 <button 
                   onClick={handleViewTaskClick}
                   style={{
