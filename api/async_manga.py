@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 # Request/Response models
 class CreateTaskRequest(BaseModel):
     story_text: str
+    session_id: str
     num_scenes: int = 5
     art_style: Optional[str] = None
     mood: Optional[str] = None
@@ -67,14 +68,14 @@ def get_or_create_session(session_id: str, db: Session) -> UserSession:
 @router.post("/generate-manga", response_model=TaskResponse)
 async def create_manga_generation_task(
     request: CreateTaskRequest,
-    session_id: str,
     db: Session = Depends(get_db)
 ):
     """
     Create an asynchronous manga generation task
     """
     try:
-        # Validate session
+        # Get session_id from request body
+        session_id = request.session_id
         if not session_id:
             session_id = generate_session_id()
         
@@ -153,6 +154,7 @@ async def create_manga_generation_task_from_file(
         # Create request object
         request = CreateTaskRequest(
             story_text=story_text,
+            session_id=session_id,
             num_scenes=num_scenes,
             art_style=art_style,
             mood=mood,
@@ -164,7 +166,7 @@ async def create_manga_generation_task_from_file(
         )
         
         # Use the existing endpoint logic
-        return await create_manga_generation_task(request, session_id, db)
+        return await create_manga_generation_task(request, db)
     
     except HTTPException:
         raise
