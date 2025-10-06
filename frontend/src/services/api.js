@@ -185,7 +185,10 @@ export const getExample = async (exampleName) => {
 };
 
 // Create PDF
-export const createPDF = async () => {
+export const createPDF = async (taskId = null) => {
+  if (taskId) {
+    return apiClient.post(`/api/async/task/${taskId}/create-pdf`);
+  }
   return apiClient.post('/api/create-pdf');
 };
 

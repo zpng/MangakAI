@@ -647,7 +647,7 @@ const AsyncMangaGenerator = () => {
             onClick={() => setActiveTab('pdf')}
           >
             <Download size={20} />
-            Download PDF
+            历史任务
           </button>
           <button 
             className={activeTab === 'examples' ? 'active' : ''}
@@ -885,6 +885,7 @@ const AsyncMangaGenerator = () => {
                           task={task} 
                           index={index}
                           onViewTask={(taskId) => handleViewTask(taskId)}
+                          onCreatePDF={(taskId) => handleCreatePDF(taskId)}
                         />
                       ))
                     )}
@@ -1077,8 +1078,8 @@ const AsyncMangaGenerator = () => {
 
           {activeTab === 'pdf' && (
             <div className="pdf-tab">
-              <h3>Export your manga as a PDF</h3>
-              <p><strong>Note:</strong> You must generate manga first before you can create a PDF.</p>
+              <h3>历史任务管理</h3>
+              <p><strong>说明:</strong> 在这里查看和管理所有的漫画生成任务，并可以为已完成的任务创建PDF。</p>
               
               <button 
                 className="pdf-btn"
@@ -1112,6 +1113,154 @@ const AsyncMangaGenerator = () => {
                       Download PDF
                     </button>
                   </a>
+                </div>
+              )}
+
+              {/* Task History Section */}
+              <div className="task-history-section" style={{ marginTop: '30px' }}>
+                <div className="task-history-header" style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: '15px'
+                }}>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>任务历史</h3>
+                  <button
+                    onClick={() => setShowHistory(!showHistory)}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: 'transparent',
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    {showHistory ? '隐藏' : '显示'} ({taskHistory.length})
+                  </button>
+                </div>
+
+                {showHistory && (
+                  <div className="task-history-list" style={{
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    backgroundColor: '#fafafa',
+                    maxHeight: '400px',
+                    overflowY: 'auto'
+                  }}>
+                    {taskHistory.length === 0 ? (
+                      <div style={{ 
+                        padding: '20px', 
+                        textAlign: 'center', 
+                        color: '#666',
+                        fontSize: '14px'
+                      }}>
+                        暂无任务历史
+                      </div>
+                    ) : (
+                      taskHistory.map((task, index) => (
+                        <TaskHistoryItem 
+                          key={task.task_id} 
+                          task={task} 
+                          index={index}
+                          onViewTask={(taskId) => handleViewTask(taskId)}
+                          onCreatePDF={(taskId) => handleCreatePDF(taskId)}
+                        />
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Current Task Progress Section */}
+              {isGenerating && (
+                <div className="progress-section" style={{ marginTop: '20px' }}>
+                  <div className="progress-header" style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '10px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {getStatusIcon(status)}
+                      <span style={{ marginLeft: '8px', fontWeight: '500' }}>当前任务进度</span>
+                    </div>
+                    <span style={{ fontSize: '14px', color: '#666' }}>{progress}%</span>
+                  </div>
+                  
+                  <div className="progress-bar" style={{
+                    width: '100%',
+                    height: '8px',
+                    backgroundColor: '#e9ecef',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <div
+                      className="progress-fill"
+                      style={{ 
+                        width: `${progress}%`,
+                        height: '100%',
+                        backgroundColor: '#007bff',
+                        transition: 'width 0.3s ease'
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="status-message" style={{ 
+                    marginTop: '8px',
+                    fontSize: '14px',
+                    color: '#666'
+                  }}>
+                    {statusMessage}
+                  </div>
+
+                  {isGenerating && isTaskActive(status) && (
+                    <button
+                      onClick={handleCancelTask}
+                      style={{ 
+                        marginTop: '10px',
+                        padding: '8px 16px', 
+                        backgroundColor: '#dc3545', 
+                        color: 'white', 
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      取消任务
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Error Display */}
+              {error && (
+                <div className="error-message" style={{ 
+                  marginTop: '20px',
+                  padding: '12px',
+                  backgroundColor: '#f8d7da',
+                  color: '#721c24',
+                  border: '1px solid #f5c6cb',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <AlertCircle size={16} style={{ marginRight: '8px' }} />
+                  {error}
+                </div>
+              )}
+
+              {/* Generated Panels Gallery */}
+              {galleryImages.length > 0 && (
+                <ImageGallery images={galleryImages} title="Generated Manga Panels" />
+              )}
+
+              {/* Scene Descriptions */}
+              {sceneDescriptions && (
+                <div className="scene-descriptions">
+                  <h3>Scene Descriptions</h3>
+                  <textarea value={sceneDescriptions} readOnly rows={10} />
                 </div>
               )}
             </div>
@@ -1218,10 +1367,12 @@ const AsyncMangaGenerator = () => {
 };
 
 // Task History Item Component
-const TaskHistoryItem = ({ task, index, onViewTask }) => {
+const TaskHistoryItem = ({ task, index, onViewTask, onCreatePDF }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [taskDetails, setTaskDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [pdfStatus, setPdfStatus] = useState('');
+  const [pdfPath, setPdfPath] = useState(null);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -1298,6 +1449,19 @@ const TaskHistoryItem = ({ task, index, onViewTask }) => {
   const handleViewTaskClick = (e) => {
     e.stopPropagation();
     onViewTask(task.task_id);
+  };
+
+  const handleCreatePDFClick = async (e) => {
+    e.stopPropagation();
+    try {
+      setPdfStatus('正在创建PDF...');
+      const response = await createPDF(task.task_id);
+      setPdfPath(response.data.pdf_path);
+      setPdfStatus('PDF创建成功！');
+    } catch (error) {
+      setPdfStatus('PDF创建失败');
+      console.error('Create PDF failed:', error);
+    }
   };
 
   return (
@@ -1487,8 +1651,8 @@ const TaskHistoryItem = ({ task, index, onViewTask }) => {
                 </div>
               )}
 
-              {/* 查看完整任务按钮 */}
-              <div style={{ marginTop: '15px', textAlign: 'center' }}>
+              {/* 查看完整任务和创建PDF按钮 */}
+              <div style={{ marginTop: '15px', textAlign: 'center', display: 'flex', gap: '10px', justifyContent: 'center' }}>
                 <button 
                   onClick={handleViewTaskClick}
                   style={{
@@ -1504,7 +1668,62 @@ const TaskHistoryItem = ({ task, index, onViewTask }) => {
                 >
                   查看完整任务
                 </button>
+                <button 
+                  onClick={handleCreatePDFClick}
+                  disabled={pdfStatus === '正在创建PDF...'}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '13px',
+                    backgroundColor: pdfStatus === '正在创建PDF...' ? '#6c757d' : '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: pdfStatus === '正在创建PDF...' ? 'not-allowed' : 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  {pdfStatus === '正在创建PDF...' ? (
+                    <>
+                      <RefreshCw size={12} style={{ marginRight: '4px', animation: 'spin 1s linear infinite' }} />
+                      创建中...
+                    </>
+                  ) : (
+                    <>
+                      <Download size={12} style={{ marginRight: '4px' }} />
+                      Create PDF
+                    </>
+                  )}
+                </button>
               </div>
+
+              {/* PDF状态和下载链接 */}
+              {pdfStatus && pdfStatus !== '正在创建PDF...' && (
+                <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                  <div style={{ 
+                    fontSize: '13px', 
+                    color: pdfStatus.includes('成功') ? '#28a745' : '#dc3545',
+                    marginBottom: '8px'
+                  }}>
+                    {pdfStatus}
+                  </div>
+                  {pdfPath && (
+                    <a href={`http://localhost:8000${pdfPath}`} download>
+                      <button style={{
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        backgroundColor: '#17a2b8',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}>
+                        <Download size={12} style={{ marginRight: '4px' }} />
+                        下载PDF
+                      </button>
+                    </a>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>

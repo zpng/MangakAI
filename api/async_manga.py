@@ -3,6 +3,7 @@ Async manga generation API endpoints
 """
 import uuid
 import logging
+import os
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from pydantic import BaseModel
@@ -12,6 +13,9 @@ from database import get_db
 from models.manga_models import MangaTask, MangaPanel, UserSession, TaskStatus
 from tasks.manga_tasks import generate_manga_task, regenerate_panel_task
 from utils import generate_session_id
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from PIL import Image
 
 router = APIRouter(prefix="/api/async", tags=["异步漫画生成"])
 logger = logging.getLogger(__name__)
@@ -47,6 +51,11 @@ class TaskStatusResponse(BaseModel):
 
 class RegeneratePanelRequest(BaseModel):
     modification_request: str
+
+class PDFResponse(BaseModel):
+    success: bool
+    message: str
+    pdf_path: Optional[str] = None
 
 def get_or_create_session(session_id: str, db: Session) -> UserSession:
     """
@@ -332,6 +341,153 @@ async def cancel_task(task_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Failed to cancel task: {str(e)}")
         raise HTTPException(status_code=500, detail=f"取消任务失败: {str(e)}")
+
+@router.post("/task/{task_id}/create-pdf", response_model=PDFResponse)
+async def create_pdf_from_task(task_id: str, db: Session = Depends(get_db)):
+    """
+    Create PDF from specific task panels
+    """
+    try:
+        # Get task and its panels
+        task = db.query(MangaTask).filter(MangaTask.id == task_id).first()
+        if not task:
+            raise HTTPException(status_code=404, detail="任务不存在")
+        
+        if task.status != TaskStatus.COMPLETED:
+            raise HTTPException(status_code=400, detail="只有已完成的任务才能创建PDF")
+        
+        # Get panels for this task
+        panels = db.query(MangaPanel).filter(
+            MangaPanel.task_id == task_id
+        ).order_by(MangaPanel.panel_number).all()
+        
+        logger.info(f"Found {len(panels)} panels for task {task_id}")
+        for panel in panels:
+            logger.info(f"Panel {panel.panel_number}: image_path={panel.image_path}, exists={os.path.exists(panel.image_path) if panel.image_path else False}")
+        
+        if not panels:
+            return PDFResponse(
+                success=False,
+                message="该任务没有可用的面板",
+                pdf_path=None
+            )
+        
+        # Create PDF
+        output_dir = "data/output"
+        os.makedirs(output_dir, exist_ok=True)
+        pdf_filename = f"manga_task_{task_id}.pdf"
+        pdf_path = os.path.join(output_dir, pdf_filename)
+        
+        # Create PDF with panels
+        c = canvas.Canvas(pdf_path, pagesize=A4)
+        page_width, page_height = A4
+        
+        # Add title page
+        c.setFont("Helvetica-Bold", 24)
+        title_text = "Manga Story"
+        text_width = c.stringWidth(title_text, "Helvetica-Bold", 24)
+        c.drawString((page_width - text_width) / 2, page_height - 100, title_text)
+        
+        c.setFont("Helvetica", 12)
+        generated_text = f"Generated on: {task.created_at.strftime('%Y-%m-%d %H:%M')}"
+        text_width = c.stringWidth(generated_text, "Helvetica", 12)
+        c.drawString((page_width - text_width) / 2, page_height - 150, generated_text)
+        
+        task_id_text = f"Task ID: {task_id}"
+        text_width = c.stringWidth(task_id_text, "Helvetica", 12)
+        c.drawString((page_width - text_width) / 2, page_height - 170, task_id_text)
+        c.showPage()
+        
+        # Add each panel as a page
+        panels_added = 0
+        for panel in panels:
+            logger.info(f"Processing panel {panel.panel_number}, image_url: {panel.image_url}")
+            
+            # Try to use image_url first (cloud storage), then fallback to image_path
+            image_source = None
+            if panel.image_url:
+                # For cloud storage URLs, we need to download or use the URL directly
+                # For now, let's try to construct the local path from the URL
+                if panel.image_url.startswith('/static/'):
+                    # Convert static URL to local file path
+                    local_path = panel.image_url.replace('/static/', 'data/')
+                    if os.path.exists(local_path):
+                        image_source = local_path
+                        logger.info(f"Using local file from static URL: {local_path}")
+                    else:
+                        logger.warning(f"Local file not found for static URL: {local_path}")
+                else:
+                    logger.info(f"Panel {panel.panel_number} has cloud URL: {panel.image_url}")
+            
+            # Fallback to image_path if available
+            if not image_source and panel.image_path and os.path.exists(panel.image_path):
+                image_source = panel.image_path
+                logger.info(f"Using image_path: {panel.image_path}")
+            
+            if image_source:
+                try:
+                    logger.info(f"Adding panel {panel.panel_number} to PDF from: {image_source}")
+                    # Open and process image
+                    img = Image.open(image_source)
+                    
+                    # Calculate dimensions to fit page while maintaining aspect ratio
+                    img_width, img_height = img.size
+                    aspect_ratio = img_width / img_height
+                    
+                    # Set maximum dimensions (with margins)
+                    max_width = page_width - 100  # 50px margin on each side
+                    max_height = page_height - 150  # 75px margin top/bottom
+                    
+                    if aspect_ratio > max_width / max_height:
+                        # Image is wider, fit to width
+                        display_width = max_width
+                        display_height = max_width / aspect_ratio
+                    else:
+                        # Image is taller, fit to height
+                        display_height = max_height
+                        display_width = max_height * aspect_ratio
+                    
+                    # Center the image on the page
+                    x = (page_width - display_width) / 2
+                    y = (page_height - display_height) / 2
+                    
+                    # Draw the image
+                    c.drawImage(image_source, x, y, width=display_width, height=display_height)
+                    
+                    # Add panel number at the bottom
+                    c.setFont("Helvetica", 10)
+                    panel_text = f"Panel {panel.panel_number}"
+                    text_width = c.stringWidth(panel_text, "Helvetica", 10)
+                    c.drawString((page_width - text_width) / 2, 30, panel_text)
+                    
+                    c.showPage()
+                    panels_added += 1
+                    
+                except Exception as e:
+                    logger.error(f"Error processing panel {panel.panel_number}: {str(e)}")
+                    continue
+            else:
+                logger.warning(f"Panel {panel.panel_number} has no accessible image source. image_url: {panel.image_url}, image_path: {panel.image_path}")
+        
+        logger.info(f"Added {panels_added} panels to PDF")
+        
+        c.save()
+        
+        # Convert to API path
+        relative_path = os.path.relpath(pdf_path, "data")
+        api_pdf_path = f"/static/{relative_path}"
+        
+        return PDFResponse(
+            success=True,
+            message=f"PDF创建成功！({panels_added} 个面板)",
+            pdf_path=api_pdf_path
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to create PDF from task: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"创建PDF失败: {str(e)}")
 
 @router.get("/health")
 async def async_api_health():

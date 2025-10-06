@@ -5,6 +5,21 @@ import './App.css';
 
 const API_BASE_URL = 'http://localhost:8000';
 
+// Helper function to get or create session ID
+const getOrCreateSessionId = () => {
+  let sessionId = localStorage.getItem('session_id');
+  if (!sessionId) {
+    sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('session_id', sessionId);
+  }
+  return sessionId;
+};
+
+// For testing purposes, let's use a fixed session ID
+const getTestSessionId = () => {
+  return 'test_session_123';
+};
+
 function App() {
   const [activeTab, setActiveTab] = useState('generate-text');
   const [storyText, setStoryText] = useState('');
@@ -37,12 +52,17 @@ function App() {
   // PDF states
   const [pdfStatus, setPdfStatus] = useState('');
   const [pdfPath, setPdfPath] = useState(null);
+  
+  // Task history state
+  const [taskHistory, setTaskHistory] = useState([]);
 
   useEffect(() => {
     // Load style options
     fetchStyleOptions();
     // Load examples
     fetchExamples();
+    // Load task history
+    loadTaskHistory();
   }, []);
 
   const fetchStyleOptions = async () => {
@@ -255,6 +275,45 @@ function App() {
       }
     } catch (error) {
       console.error('Error creating PDF:', error);
+      setPdfStatus('Error creating PDF: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load task history
+  const loadTaskHistory = async () => {
+    try {
+      // Use test session ID for now to see the test task
+      const sessionId = getTestSessionId();
+      console.log('Loading task history with session ID:', sessionId);
+      const response = await axios.get(`${API_BASE_URL}/api/async/tasks`, {
+        params: { session_id: sessionId, limit: 10, offset: 0 }
+      });
+      console.log('Task history response:', response.data);
+      setTaskHistory(response.data.tasks || []);
+    } catch (error) {
+      console.error('Failed to load task history:', error);
+    }
+  };
+
+  // Create PDF from specific task
+  const createPDFFromTask = async (taskId) => {
+    setLoading(true);
+    setPdfStatus('');
+    setPdfPath(null);
+    
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/async/task/${taskId}/create-pdf`);
+      
+      if (response.data.success) {
+        setPdfStatus(response.data.message);
+        setPdfPath(response.data.pdf_path);
+      } else {
+        setPdfStatus('Error: ' + response.data.message);
+      }
+    } catch (error) {
+      console.error('Error creating PDF from task:', error);
       setPdfStatus('Error creating PDF: ' + error.message);
     } finally {
       setLoading(false);
@@ -616,25 +675,74 @@ function App() {
           {activeTab === 'pdf' && (
             <div className="pdf-tab">
               <h3>Export your manga as a PDF</h3>
-              <p><strong>Note:</strong> You must generate manga first before you can create a PDF.</p>
+              <p><strong>Note:</strong> Select a completed task below to create a PDF from it.</p>
               
-              <button 
-                className="pdf-btn"
-                onClick={createPDF}
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw className="spinning" size={20} />
-                    Creating PDF...
-                  </>
+              {/* Debug info */}
+              <div style={{ marginBottom: '20px', padding: '10px', background: '#f0f0f0', borderRadius: '5px', fontSize: '12px' }}>
+                <p>Debug: Task history length: {taskHistory.length}</p>
+                <p>Debug: Completed tasks: {taskHistory.filter(task => task.status === 'COMPLETED').length}</p>
+                <button onClick={loadTaskHistory} style={{ padding: '5px 10px', fontSize: '12px' }}>
+                  Reload Tasks
+                </button>
+              </div>
+              
+              {/* Task List for PDF Creation */}
+              <div className="pdf-task-list">
+                <h4>Select a Completed Task</h4>
+                {taskHistory.length === 0 ? (
+                  <div className="no-tasks">
+                    <p>No completed tasks available. Please generate manga first.</p>
+                  </div>
                 ) : (
-                  <>
-                    <Download size={20} />
-                    Create PDF
-                  </>
+                  <div className="task-list">
+                    {/* Show all tasks for debugging, not just completed ones */}
+                    {taskHistory.map((task, index) => (
+                      <div key={task.task_id} className="task-item">
+                        <div className="task-info">
+                          <div className="task-header">
+                            <span className="task-title">Task #{index + 1} - {task.status}</span>
+                            <span className="task-panels">{task.total_panels} panels</span>
+                          </div>
+                          <div className="task-preview">
+                            {task.story_preview}
+                          </div>
+                          <div className="task-date">
+                            Created: {new Date(task.created_at).toLocaleString('zh-CN')}
+                            {task.completed_at && (
+                              <span> | Completed: {new Date(task.completed_at).toLocaleString('zh-CN')}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="task-actions">
+                          <button 
+                            className="pdf-btn"
+                            onClick={() => createPDFFromTask(task.task_id)}
+                            disabled={loading || task.status !== 'COMPLETED'}
+                          >
+                            {loading ? (
+                              <>
+                                <RefreshCw className="spinning" size={16} />
+                                Creating...
+                              </>
+                            ) : (
+                              <>
+                                <Download size={16} />
+                                {task.status === 'COMPLETED' ? 'Create PDF' : `Status: ${task.status}`}
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </button>
+                
+                {taskHistory.filter(task => task.status === 'COMPLETED').length === 0 && taskHistory.length > 0 && (
+                  <div className="no-completed-tasks">
+                    <p>No completed tasks available. Please wait for your manga generation to complete.</p>
+                  </div>
+                )}
+              </div>
 
               {pdfStatus && (
                 <div className="status-message">
