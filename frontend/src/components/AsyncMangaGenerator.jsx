@@ -859,43 +859,7 @@ const AsyncMangaGenerator = () => {
                 </div>
               )}
 
-              {/* Task History Section */}
-              <div className="task-history-section" style={{ marginTop: '30px' }}>
-                <div className="task-history-header" style={{ 
-                  marginBottom: '15px'
-                }}>
-                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>任务历史</h3>
-                </div>
 
-                <div className="task-history-list" style={{
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '8px',
-                  backgroundColor: '#fafafa',
-                  maxHeight: '400px',
-                  overflowY: 'auto'
-                }}>
-                  {taskHistory.length === 0 ? (
-                    <div style={{ 
-                      padding: '20px', 
-                      textAlign: 'center', 
-                      color: '#666',
-                      fontSize: '14px'
-                    }}>
-                      暂无任务历史
-                    </div>
-                  ) : (
-                    taskHistory.map((task, index) => (
-                      <TaskHistoryItem 
-                        key={task.task_id} 
-                        task={task} 
-                        index={index}
-                        onViewTask={(taskId) => handleViewTask(taskId)}
-                        onCreatePDF={(taskId) => handleCreatePDF(taskId)}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
 
               {galleryImages.length > 0 && (
                 <ImageGallery images={galleryImages} title="Generated Manga Panels" />
