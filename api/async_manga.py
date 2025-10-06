@@ -377,14 +377,33 @@ async def create_pdf_from_task(task_id: str, db: Session = Depends(get_db)):
         if task.status != TaskStatus.COMPLETED:
             raise HTTPException(status_code=400, detail="只有已完成的任务才能创建PDF")
         
-        # Get panels for this task
-        panels = db.query(MangaPanel).filter(
+        # Get all panels for this task
+        all_panels = db.query(MangaPanel).filter(
             MangaPanel.task_id == task_id
-        ).order_by(MangaPanel.panel_number).all()
+        ).order_by(MangaPanel.panel_number, MangaPanel.is_regenerated.desc(), MangaPanel.created_at.desc()).all()
         
-        logger.info(f"Found {len(panels)} panels for task {task_id}")
+        # Select the best panel for each panel_number (prioritize regenerated and latest)
+        panel_dict = {}
+        for panel in all_panels:
+            panel_number = panel.panel_number
+            if panel_number not in panel_dict:
+                # First panel for this number, use it
+                panel_dict[panel_number] = panel
+            else:
+                current_panel = panel_dict[panel_number]
+                # Replace if this panel is regenerated and current is not, 
+                # or if both are regenerated/original but this one is newer
+                if (panel.is_regenerated and not current_panel.is_regenerated) or \
+                   (panel.is_regenerated == current_panel.is_regenerated and panel.created_at > current_panel.created_at):
+                    panel_dict[panel_number] = panel
+        
+        # Convert to sorted list
+        panels = [panel_dict[panel_number] for panel_number in sorted(panel_dict.keys())]
+        
+        logger.info(f"Found {len(panels)} panels for task {task_id} (selected best version for each panel number)")
         for panel in panels:
-            logger.info(f"Panel {panel.panel_number}: image_path={panel.image_path}, exists={os.path.exists(panel.image_path) if panel.image_path else False}")
+            panel_type = "Regenerated" if panel.is_regenerated else "Original"
+            logger.info(f"Panel {panel.panel_number} ({panel_type}): image_path={panel.image_path}, exists={os.path.exists(panel.image_path) if panel.image_path else False}")
         
         if not panels:
             return PDFResponse(
@@ -481,9 +500,11 @@ async def create_pdf_from_task(task_id: str, db: Session = Depends(get_db)):
                     # Draw the image
                     c.drawImage(image_source, x, y, width=display_width, height=display_height)
                     
-                    # Add panel number at the bottom
+                    # Add panel number at the bottom with regeneration indicator
                     c.setFont("Helvetica", 10)
                     panel_text = f"Panel {panel.panel_number}"
+                    if panel.is_regenerated:
+                        panel_text += " (Regenerated)"
                     text_width = c.stringWidth(panel_text, "Helvetica", 10)
                     c.drawString((page_width - text_width) / 2, 30, panel_text)
                     
