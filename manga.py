@@ -241,7 +241,7 @@ class MangaGenerator:
         return response, saved_image
 
     def generate_image_with_chat_and_reference(self, scene_description: str, output_path: str, chat, reference_image_path=None):
-        """Generate image using chat context with optional reference image."""
+        """Generate image using chat context with optional reference image for style consistency."""
         current_template = self.get_current_template_path()
         
         # Build the content list with template and optional reference
@@ -250,6 +250,26 @@ class MangaGenerator:
         if reference_image_path and os.path.exists(reference_image_path):
             content.append(PIL.Image.open(reference_image_path))
             print(f"Using reference image: {reference_image_path}")
+        
+        # For regeneration, also include the original panel as a style reference if available
+        if "Regenerate this manga panel" in scene_description and hasattr(self, 'current_generation'):
+            # Try to find the original panel image to use as style reference
+            generated_images = self.current_generation.get('generated_images', [])
+            if generated_images:
+                # Extract panel number from the scene description or use the first panel as fallback
+                try:
+                    # Look for scene number in output path
+                    import re
+                    scene_match = re.search(r'scene(\d+)', output_path)
+                    if scene_match:
+                        scene_num = int(scene_match.group(1)) - 1
+                        if 0 <= scene_num < len(generated_images):
+                            original_panel_path = generated_images[scene_num]['image_path']
+                            if os.path.exists(original_panel_path):
+                                content.append(PIL.Image.open(original_panel_path))
+                                print(f"Using original panel as style reference: {original_panel_path}")
+                except Exception as e:
+                    print(f"Could not add original panel as reference: {e}")
         
         response = chat.send_message(content)
         saved_image = self.save_image(response, output_path)
@@ -272,13 +292,26 @@ class MangaGenerator:
             reference_image_path = self.save_user_reference_image(reference_image)
             if reference_image_path:
                 # Add reference image instruction to modification request
-                modification_request += "\n\nIMPORTANT: Use the provided reference image as visual guidance for style, composition, or specific elements while maintaining the story's integrity."
+                modification_request += "\n\nIMPORTANT: Use the provided reference image as visual guidance for style, composition, or specific elements while maintaining the story's integrity and PRESERVING the original panel's visual style and aesthetic consistency."
         
-        # Create modified prompt with user preferences
+        # Create modified prompt with user preferences and style consistency emphasis
         user_preferences = self.current_generation.get('user_preferences', {})
+        
+        # Enhanced modification request with style consistency
+        enhanced_modification_request = f"""
+{modification_request}
+
+STYLE CONSISTENCY NOTE: This panel is part of an existing manga series. Please ensure the regenerated panel maintains perfect visual consistency with the original style, including:
+- Same art style and technique
+- Consistent character designs and proportions  
+- Matching color palette and lighting
+- Same level of detail and line quality
+- Overall aesthetic coherence with the original panel
+"""
+        
         modified_prompt = get_regeneration_prompt(
             original_scene, 
-            modification_request, 
+            enhanced_modification_request, 
             is_first_panel=(panel_index == 0),
             user_preferences=user_preferences
         )

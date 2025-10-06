@@ -187,19 +187,27 @@ Style requirements:
 
 def get_regeneration_prompt(original_scene: str, modification_request: str, is_first_panel: bool = False, user_preferences: dict = None) -> str:
     """
-    Generate prompt for panel regeneration with modifications
+    Generate prompt for panel regeneration with modifications while maintaining style consistency
     """
     base_prompt = f"""
-Regenerate this manga panel with the following modifications:
+Regenerate this manga panel with the following modifications while STRICTLY MAINTAINING the visual style, art consistency, and aesthetic of the original panel:
 
 Original scene: {original_scene}
 
 Modification request: {modification_request}
 
-Please maintain the core story elements while incorporating the requested changes.
+CRITICAL STYLE CONSISTENCY REQUIREMENTS:
+- Keep the EXACT SAME art style, line quality, and visual aesthetic as the original panel
+- Maintain consistent character designs, proportions, and facial features
+- Preserve the same color palette, lighting style, and mood
+- Keep the same level of detail and artistic technique
+- Ensure the modified panel looks like it belongs to the same manga series
+- Only change what is specifically requested while keeping everything else visually consistent
+
+Please maintain the core story elements while incorporating the requested changes WITHOUT altering the established visual style.
 """
     
-    # Add user preferences if available
+    # Add user preferences if available to ensure consistency
     enhanced_prompt = get_panel_prompt(base_prompt, user_preferences, is_first_panel)
     
     return enhanced_prompt

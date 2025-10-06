@@ -221,11 +221,23 @@ def regenerate_panel_task(self, regenerated_panel_id: str, modification_request:
             generator = MangaGenerator()
             chat = generator.image_gen_client.chats.create(model=generator.image_gen_model_name)
             
+            # Create enhanced modification request with style consistency emphasis
+            enhanced_modification_request = f"""
+{modification_request}
+
+STYLE CONSISTENCY NOTE: This panel is part of an existing manga series. Please ensure the regenerated panel maintains perfect visual consistency with the original style, including:
+- Same art style and technique
+- Consistent character designs and proportions  
+- Matching color palette and lighting
+- Same level of detail and line quality
+- Overall aesthetic coherence with the original panel
+"""
+            
             # Create modified prompt using original panel's scene description
             user_preferences = task.parameters or {}
             modified_scene = get_regeneration_prompt(
                 original_panel.scene_description,
-                modification_request,
+                enhanced_modification_request,
                 is_first_panel=(regenerated_panel.panel_number == 1),
                 user_preferences=user_preferences
             )
@@ -233,8 +245,13 @@ def regenerate_panel_task(self, regenerated_panel_id: str, modification_request:
             # Generate new image with unique path
             output_path = f"/tmp/panel_{task.id}_{regenerated_panel.panel_number}_regenerated_{regenerated_panel_id}.png"
             
-            # Use reference image if provided
+            # Use reference image if provided, with enhanced style consistency
             if reference_image_path and os.path.exists(reference_image_path):
+                # Add original panel as style reference if available
+                original_panel_path = None
+                if original_panel.image_path and os.path.exists(original_panel.image_path):
+                    original_panel_path = original_panel.image_path
+                
                 response, saved_image = generator.generate_image_with_chat_and_reference(
                     modified_scene, output_path, chat, reference_image_path
                 )
