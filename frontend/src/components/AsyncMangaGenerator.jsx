@@ -1562,6 +1562,89 @@ const TaskHistoryItem = ({ task, index, onViewTask, onCreatePDF }) => {
               {task.story_preview}
             </div>
             
+            {/* Style preferences display */}
+            {(task.art_style || task.mood || task.color_palette || task.character_style || task.line_style || task.composition) && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#555', 
+                marginBottom: '6px',
+                padding: '6px 8px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '4px',
+                border: '1px solid #e9ecef'
+              }}>
+                <div style={{ fontWeight: '500', marginBottom: '4px' }}>风格偏好:</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  {task.art_style && task.art_style !== 'None' && (
+                    <span style={{ 
+                      backgroundColor: '#e3f2fd', 
+                      color: '#1976d2', 
+                      padding: '2px 6px', 
+                      borderRadius: '3px',
+                      fontSize: '11px'
+                    }}>
+                      艺术风格: {task.art_style}
+                    </span>
+                  )}
+                  {task.mood && task.mood !== 'None' && (
+                    <span style={{ 
+                      backgroundColor: '#f3e5f5', 
+                      color: '#7b1fa2', 
+                      padding: '2px 6px', 
+                      borderRadius: '3px',
+                      fontSize: '11px'
+                    }}>
+                      情绪: {task.mood}
+                    </span>
+                  )}
+                  {task.color_palette && task.color_palette !== 'None' && (
+                    <span style={{ 
+                      backgroundColor: '#e8f5e8', 
+                      color: '#388e3c', 
+                      padding: '2px 6px', 
+                      borderRadius: '3px',
+                      fontSize: '11px'
+                    }}>
+                      色彩: {task.color_palette}
+                    </span>
+                  )}
+                  {task.character_style && task.character_style !== 'None' && (
+                    <span style={{ 
+                      backgroundColor: '#fff3e0', 
+                      color: '#f57c00', 
+                      padding: '2px 6px', 
+                      borderRadius: '3px',
+                      fontSize: '11px'
+                    }}>
+                      角色: {task.character_style}
+                    </span>
+                  )}
+                  {task.line_style && task.line_style !== 'None' && (
+                    <span style={{ 
+                      backgroundColor: '#fce4ec', 
+                      color: '#c2185b', 
+                      padding: '2px 6px', 
+                      borderRadius: '3px',
+                      fontSize: '11px'
+                    }}>
+                      线条: {task.line_style}
+                    </span>
+                  )}
+                  {task.composition && task.composition !== 'None' && (
+                    <span style={{ 
+                      backgroundColor: '#e1f5fe', 
+                      color: '#0277bd', 
+                      padding: '2px 6px', 
+                      borderRadius: '3px',
+                      fontSize: '11px'
+                    }}>
+                      构图: {task.composition}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            
             <div style={{ 
               fontSize: '12px', 
               color: '#888',

@@ -24,6 +24,16 @@ class MangaTask(Base):
     total_panels = Column(Integer, default=5)
     current_panel = Column(Integer, default=0)
     error_message = Column(Text, nullable=True)
+    
+    # Style preference fields
+    art_style = Column(String(100), nullable=True)
+    mood = Column(String(100), nullable=True)
+    color_palette = Column(String(100), nullable=True)
+    character_style = Column(String(100), nullable=True)
+    line_style = Column(String(100), nullable=True)
+    composition = Column(String(100), nullable=True)
+    additional_notes = Column(Text, nullable=True)
+    
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp(), index=True)
     updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
     completed_at = Column(TIMESTAMP, nullable=True)
@@ -46,6 +56,13 @@ class MangaTask(Base):
             'total_panels': self.total_panels,
             'current_panel': self.current_panel,
             'error_message': self.error_message,
+            'art_style': self.art_style,
+            'mood': self.mood,
+            'color_palette': self.color_palette,
+            'character_style': self.character_style,
+            'line_style': self.line_style,
+            'composition': self.composition,
+            'additional_notes': self.additional_notes,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'completed_at': self.completed_at.isoformat() if self.completed_at else None,

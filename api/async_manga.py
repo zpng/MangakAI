@@ -96,6 +96,13 @@ async def create_manga_generation_task(
             user_session_id=session_id,
             story_text=request.story_text,
             total_panels=request.num_scenes,
+            art_style=request.art_style,
+            mood=request.mood,
+            color_palette=request.color_palette,
+            character_style=request.character_style,
+            line_style=request.line_style,
+            composition=request.composition,
+            additional_notes=request.additional_notes,
             parameters={
                 "art_style": request.art_style,
                 "mood": request.mood,
