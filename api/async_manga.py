@@ -193,19 +193,23 @@ async def get_task_status(task_id: str, db: Session = Depends(get_db)):
         if not task:
             raise HTTPException(status_code=404, detail="任务不存在")
         
-        # Get panel information
+        # Get panel information including regeneration fields
         panels = db.query(MangaPanel).filter(
             MangaPanel.task_id == task.id
-        ).order_by(MangaPanel.panel_number).all()
+        ).order_by(MangaPanel.panel_number, MangaPanel.is_regenerated).all()
         
         panels_data = []
         for panel in panels:
             panels_data.append({
+                "id": str(panel.id),
                 "panel_number": panel.panel_number,
                 "scene_description": panel.scene_description,
                 "image_url": panel.image_url,
                 "status": panel.status,
-                "version": panel.version
+                "version": panel.version,
+                "is_regenerated": panel.is_regenerated,
+                "original_panel_id": str(panel.original_panel_id) if panel.original_panel_id else None,
+                "regeneration_request": panel.regeneration_request
             })
         
         return TaskStatusResponse(
