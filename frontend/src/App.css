@@ -67,9 +67,9 @@ body {
 .manga-modal-content {
   background: white;
   border-radius: 15px;
-  max-width: 90vw;
-  max-height: 90vh;
-  width: 1000px;
+  max-width: 95vw;
+  max-height: 98vh;
+  width: 1200px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -111,8 +111,8 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: 25px;
-  gap: 20px;
+  padding: 20px;
+  gap: 15px;
   overflow: hidden;
 }
 
@@ -123,13 +123,17 @@ body {
   align-items: center;
   background: #f8f9fa;
   border-radius: 10px;
-  padding: 20px;
+  padding: 15px;
   min-height: 400px;
+  max-height: calc(100vh - 200px);
+  overflow: hidden;
 }
 
 .modal-main-image {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: 95%;
+  max-height: 95%;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -140,8 +144,9 @@ body {
   gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
-  padding: 15px 0;
+  padding: 10px 0;
   border-top: 1px solid #eee;
+  flex-shrink: 0;
 }
 
 .modal-thumbnail-item {
@@ -175,18 +180,19 @@ body {
 /* Responsive modal */
 @media (max-width: 768px) {
   .manga-modal-content {
-    width: 95vw;
-    max-height: 95vh;
+    width: 98vw;
+    max-height: 98vh;
   }
   
   .manga-modal-body {
-    padding: 15px;
-    gap: 15px;
+    padding: 12px;
+    gap: 10px;
   }
   
   .modal-main-panel {
     min-height: 300px;
-    padding: 15px;
+    max-height: calc(100vh - 150px);
+    padding: 8px;
   }
   
   .modal-thumbnails {

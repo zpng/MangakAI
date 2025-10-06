@@ -26,7 +26,6 @@ function App() {
   const [selectedExample, setSelectedExample] = useState('');
   const [exampleData, setExampleData] = useState(null);
   const [selectedPanelIndex, setSelectedPanelIndex] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Regeneration states
   const [panelNumber, setPanelNumber] = useState(1);
@@ -148,34 +147,6 @@ function App() {
       }
     }
   };
-
-  // Add modal functions
-  const openModal = () => {
-    setIsModalOpen(true);
-    document.body.style.overflow = 'hidden'; // Prevent background scrolling
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    document.body.style.overflow = 'unset'; // Restore scrolling
-  };
-
-  // Handle escape key to close modal
-  useEffect(() => {
-    const handleEscapeKey = (event) => {
-      if (event.key === 'Escape' && isModalOpen) {
-        closeModal();
-      }
-    };
-
-    if (isModalOpen) {
-      document.addEventListener('keydown', handleEscapeKey);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscapeKey);
-    };
-  }, [isModalOpen]);
 
   const generateManga = async () => {
     setLoading(true);
@@ -738,13 +709,6 @@ function App() {
                           >
                             ↓
                           </button>
-                          <button 
-                            className="control-btn"
-                            onClick={openModal}
-                            title="放大查看"
-                          >
-                            ⤢
-                          </button>
                         </div>
                       </div>
                       <div className="manga-content">
@@ -787,42 +751,6 @@ function App() {
           )}
         </div>
       </div>
-
-      {/* Modal for enlarged manga view */}
-      {isModalOpen && (
-        <div className="manga-modal-overlay" onClick={closeModal}>
-          <div className="manga-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="manga-modal-header">
-              <h3>漫画面板预览</h3>
-              <button className="modal-close-btn" onClick={closeModal}>
-                ✕
-              </button>
-            </div>
-            
-            <div className="manga-modal-body">
-              <div className="modal-main-panel">
-                <img 
-                  src={`${API_BASE_URL}${exampleData.panels[selectedPanelIndex]}`} 
-                  alt={`Manga panel ${selectedPanelIndex + 1}`}
-                  className="modal-main-image"
-                />
-              </div>
-              
-              <div className="modal-thumbnails">
-                {exampleData.panels.map((panel, index) => (
-                  <div 
-                    key={index} 
-                    className={`modal-thumbnail-item ${index === selectedPanelIndex ? 'active' : ''}`}
-                    onClick={() => setSelectedPanelIndex(index)}
-                  >
-                    <img src={`${API_BASE_URL}${panel}`} alt={`Panel ${index + 1}`} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
