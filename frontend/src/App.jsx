@@ -350,7 +350,7 @@ function App() {
     <div className="app">
       <header className="app-header">
         <h1>📚 MangakAI</h1>
-        <p>Transform your stories into manga panels with AI and custom style preferences!</p>
+        <p>使用AI和自定义风格偏好将您的故事转化为漫画面板！</p>
       </header>
 
       <div className="tab-container">

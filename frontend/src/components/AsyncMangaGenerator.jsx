@@ -608,7 +608,7 @@ const AsyncMangaGenerator = () => {
     <div className="style-dropdown">
       <label>{label}</label>
       <select value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="None">None</option>
+        <option value="None">无</option>
         {options && options.map(option => (
           <option key={option} value={option}>{option}</option>
         ))}
@@ -622,8 +622,8 @@ const AsyncMangaGenerator = () => {
       <div className="gallery-grid">
         {images && images.map((image, index) => (
           <div key={index} className="gallery-item">
-            <img src={`http://localhost:8000${image}`} alt={`Panel ${index + 1}`} />
-            <div className="panel-number">Panel {index + 1}</div>
+            <img src={`http://localhost:8000${image}`} alt={`面板 ${index + 1}`} />
+            <div className="panel-number">面板 {index + 1}</div>
           </div>
         ))}
       </div>
@@ -634,7 +634,7 @@ const AsyncMangaGenerator = () => {
     <div className="app">
       <header className="app-header">
         <h1>📚 MangakAI</h1>
-        <p>Transform your stories into manga panels with AI and custom style preferences!</p>
+        <p>使用AI和自定义风格偏好将您的故事转化为漫画面板！</p>
       </header>
 
       <div className="tab-container">
@@ -642,19 +642,19 @@ const AsyncMangaGenerator = () => {
 
         {/* Tab Buttons */}
         <div className="tab-buttons">
-          <button 
+          <button
             className={activeTab === 'generate-text' ? 'active' : ''}
             onClick={() => handleTabChange('generate-text')}
           >
             <FileText size={20} />
-            Text Input
+            文本输入
           </button>
-          <button 
+          <button
             className={activeTab === 'generate-file' ? 'active' : ''}
             onClick={() => handleTabChange('generate-file')}
           >
             <Upload size={20} />
-            File Upload
+            文件上传
           </button>
 
           <button 
@@ -669,7 +669,7 @@ const AsyncMangaGenerator = () => {
             onClick={() => handleTabChange('examples')}
           >
             <BookOpen size={20} />
-            Examples
+            示例
           </button>
         </div>
 
@@ -679,18 +679,18 @@ const AsyncMangaGenerator = () => {
               {/* Input Section */}
               <div className="input-section">
                 <div className="story-input">
-                  <label>Enter your story</label>
+                  <label>输入您的故事</label>
                   <textarea
                     value={storyText}
                     onChange={(e) => setStoryText(e.target.value)}
-                    placeholder="Once upon a time..."
+                    placeholder="很久很久以前..."
                     rows={10}
                     disabled={isGenerating}
                   />
                 </div>
 
                 <div className="scenes-input">
-                  <label>Number of Scenes</label>
+                  <label>场景数量</label>
                   <input
                     type="range"
                     min="1"
@@ -704,40 +704,40 @@ const AsyncMangaGenerator = () => {
               </div>
 
               <div className="style-section">
-                <h3>🎨 Style Preferences</h3>
+                <h3>🎨 风格偏好</h3>
                 <div className="style-grid">
                   <StyleDropdown
-                    label="Art Style"
+                    label="艺术风格"
                     value={selectedStyles.art_style}
                     onChange={(value) => setSelectedStyles({...selectedStyles, art_style: value})}
                     options={styleOptions.art_styles}
                   />
                   <StyleDropdown
-                    label="Overall Mood"
+                    label="整体氛围"
                     value={selectedStyles.mood}
                     onChange={(value) => setSelectedStyles({...selectedStyles, mood: value})}
                     options={styleOptions.mood_options}
                   />
                   <StyleDropdown
-                    label="Color Palette"
+                    label="色彩搭配"
                     value={selectedStyles.color_palette}
                     onChange={(value) => setSelectedStyles({...selectedStyles, color_palette: value})}
                     options={styleOptions.color_palettes}
                   />
                   <StyleDropdown
-                    label="Character Style"
+                    label="角色风格"
                     value={selectedStyles.character_style}
                     onChange={(value) => setSelectedStyles({...selectedStyles, character_style: value})}
                     options={styleOptions.character_styles}
                   />
                   <StyleDropdown
-                    label="Line Art Style"
+                    label="线条风格"
                     value={selectedStyles.line_style}
                     onChange={(value) => setSelectedStyles({...selectedStyles, line_style: value})}
                     options={styleOptions.line_styles}
                   />
                   <StyleDropdown
-                    label="Composition Style"
+                    label="构图风格"
                     value={selectedStyles.composition}
                     onChange={(value) => setSelectedStyles({...selectedStyles, composition: value})}
                     options={styleOptions.composition_styles}
@@ -745,11 +745,11 @@ const AsyncMangaGenerator = () => {
                 </div>
                 
                 <div className="additional-notes">
-                  <label>Additional Style Notes</label>
+                  <label>额外风格说明</label>
                   <textarea
                     value={additionalNotes}
                     onChange={(e) => setAdditionalNotes(e.target.value)}
-                    placeholder="Any specific style preferences, character descriptions, or artistic directions..."
+                    placeholder="任何特定的风格偏好、角色描述或艺术指导..."
                     rows={3}
                     disabled={isGenerating}
                   />
@@ -779,12 +779,12 @@ const AsyncMangaGenerator = () => {
 
 
               {galleryImages.length > 0 && (
-                <ImageGallery images={galleryImages} title="Generated Manga Panels" />
+                <ImageGallery images={galleryImages} title="生成的漫画面板" />
               )}
 
               {sceneDescriptions && (
                 <div className="scene-descriptions">
-                  <h3>Scene Descriptions</h3>
+                  <h3>场景描述</h3>
                   <textarea value={sceneDescriptions} readOnly rows={10} />
                 </div>
               )}
@@ -794,16 +794,44 @@ const AsyncMangaGenerator = () => {
           {activeTab === 'generate-file' && (
             <div className="generate-file-tab">
               <div className="file-upload">
-                <label>Upload Story File (.txt)</label>
-                <input
-                  type="file"
-                  accept=".txt"
-                  onChange={handleFileSelect}
-                />
+                <label>{uploadedFile ? '重新上传故事文件 (.txt)' : '上传故事文件 (.txt)'}</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input
+                    type="file"
+                    accept=".txt"
+                    onChange={handleFileSelect}
+                    style={{ display: 'none' }}
+                    id="file-upload-input"
+                  />
+                  <label 
+                    htmlFor="file-upload-input"
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      display: 'inline-block',
+                      transition: 'background-color 0.3s ease'
+                    }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
+                  >
+                    {uploadedFile ? '重新选择文件' : '选择文件'}
+                  </label>
+                  {uploadedFile && (
+                    <span style={{ fontSize: '14px', color: '#666' }}>
+                      已选择: {uploadedFile.name}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="scenes-input">
-                <label>Number of Scenes</label>
+                <label>场景数量</label>
                 <input
                   type="range"
                   min="1"
@@ -815,40 +843,40 @@ const AsyncMangaGenerator = () => {
               </div>
 
               <div className="style-section">
-                <h3>🎨 Style Preferences</h3>
+                <h3>🎨 风格偏好</h3>
                 <div className="style-grid">
                   <StyleDropdown
-                    label="Art Style"
+                    label="艺术风格"
                     value={selectedStyles.art_style}
                     onChange={(value) => setSelectedStyles({...selectedStyles, art_style: value})}
                     options={styleOptions.art_styles}
                   />
                   <StyleDropdown
-                    label="Overall Mood"
+                    label="整体氛围"
                     value={selectedStyles.mood}
                     onChange={(value) => setSelectedStyles({...selectedStyles, mood: value})}
                     options={styleOptions.mood_options}
                   />
                   <StyleDropdown
-                    label="Color Palette"
+                    label="色彩搭配"
                     value={selectedStyles.color_palette}
                     onChange={(value) => setSelectedStyles({...selectedStyles, color_palette: value})}
                     options={styleOptions.color_palettes}
                   />
                   <StyleDropdown
-                    label="Character Style"
+                    label="角色风格"
                     value={selectedStyles.character_style}
                     onChange={(value) => setSelectedStyles({...selectedStyles, character_style: value})}
                     options={styleOptions.character_styles}
                   />
                   <StyleDropdown
-                    label="Line Art Style"
+                    label="线条风格"
                     value={selectedStyles.line_style}
                     onChange={(value) => setSelectedStyles({...selectedStyles, line_style: value})}
                     options={styleOptions.line_styles}
                   />
                   <StyleDropdown
-                    label="Composition Style"
+                    label="构图风格"
                     value={selectedStyles.composition}
                     onChange={(value) => setSelectedStyles({...selectedStyles, composition: value})}
                     options={styleOptions.composition_styles}
@@ -856,11 +884,11 @@ const AsyncMangaGenerator = () => {
                 </div>
                 
                 <div className="additional-notes">
-                  <label>Additional Style Notes</label>
+                  <label>额外风格说明</label>
                   <textarea
                     value={additionalNotes}
                     onChange={(e) => setAdditionalNotes(e.target.value)}
-                    placeholder="Any specific style preferences, character descriptions, or artistic directions..."
+                    placeholder="任何特定的风格偏好、角色描述或艺术指导..."
                     rows={3}
                   />
                 </div>
@@ -1141,14 +1169,14 @@ const AsyncMangaGenerator = () => {
 
           {activeTab === 'examples' && (
             <div className="examples-tab">
-              <h3>Explore Example Stories and Manga</h3>
-              <p>Select from our curated examples to see how stories transform into manga panels!</p>
+              <h3>探索示例故事和漫画</h3>
+              <p>从我们精选的示例中选择，看看故事如何转化为漫画面板！</p>
               
               {exampleData && (
                 <div className="examples-layout">
                   <div className="examples-left-panel">
                     <div className="example-selector">
-                      <label>Select Example</label>
+                      <label>选择示例</label>
                       <select 
                         value={selectedExample} 
                         onChange={(e) => handleExampleChange(e.target.value)}
