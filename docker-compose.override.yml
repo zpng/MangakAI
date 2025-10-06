@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: mangakai
+      POSTGRES_USER: mangakai
+      POSTGRES_PASSWORD: password
+  
+  redis:
+    ports:
+      - "6379:6379"
