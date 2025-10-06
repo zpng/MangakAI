@@ -147,10 +147,10 @@ dev-celery:
 	@echo "⚡ 启动Celery异步任务处理器..."
 	@echo "启动 Celery Worker..."
 	@trap 'kill %1 %2 2>/dev/null; exit' INT; \
-	uv run celery -A celery_app worker --loglevel=info --concurrency=2 & \
+	PYTHONPATH=$(PWD) uv run celery -A celery_app worker --loglevel=info --concurrency=2 & \
 	sleep 3 && \
 	echo "启动 Celery Beat 调度器..." && \
-	uv run celery -A celery_app beat --loglevel=info & \
+	PYTHONPATH=$(PWD) uv run celery -A celery_app beat --loglevel=info & \
 	wait
 
 # 启动前端开发服务器
