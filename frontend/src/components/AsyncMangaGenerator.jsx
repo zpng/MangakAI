@@ -496,6 +496,45 @@ const AsyncMangaGenerator = () => {
     }
   };
 
+  const handleViewTask = async (taskId) => {
+    try {
+      setError('');
+      
+      // Get detailed task status
+      const response = await getTaskStatus(taskId);
+      const taskData = response.data;
+      
+      // Update current task
+      setCurrentTask({ task_id: taskId, status: taskData.status });
+      setStatus(taskData.status);
+      setProgress(taskData.progress);
+      setStatusMessage(getStatusMessage(taskData.status, taskData.progress, taskData.current_panel, taskData.total_panels));
+      
+      // Update panels if completed
+      if (taskData.panels && taskData.panels.length > 0) {
+        setPanels(taskData.panels);
+        
+        // Extract images for gallery
+        const images = taskData.panels
+          .filter(panel => panel.image_url)
+          .map(panel => panel.image_url);
+        setGalleryImages(images);
+        
+        // Extract scene descriptions
+        const descriptions = taskData.panels
+          .map((panel, index) => `Scene ${index + 1}: ${panel.scene_description}`)
+          .join('\n\n');
+        setSceneDescriptions(descriptions);
+      }
+      
+      // Show task details
+      setShowHistory(true);
+      
+    } catch (error) {
+      setError(`查看任务失败: ${handleApiError(error)}`);
+    }
+  };
+
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -797,6 +836,61 @@ const AsyncMangaGenerator = () => {
                   </div>
                 </div>
               )}
+
+              {/* Task History Section */}
+              <div className="task-history-section" style={{ marginTop: '30px' }}>
+                <div className="task-history-header" style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: '15px'
+                }}>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>任务历史</h3>
+                  <button
+                    onClick={() => setShowHistory(!showHistory)}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: 'transparent',
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    {showHistory ? '隐藏' : '显示'} ({taskHistory.length})
+                  </button>
+                </div>
+
+                {showHistory && (
+                  <div className="task-history-list" style={{
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    backgroundColor: '#fafafa',
+                    maxHeight: '400px',
+                    overflowY: 'auto'
+                  }}>
+                    {taskHistory.length === 0 ? (
+                      <div style={{ 
+                        padding: '20px', 
+                        textAlign: 'center', 
+                        color: '#666',
+                        fontSize: '14px'
+                      }}>
+                        暂无任务历史
+                      </div>
+                    ) : (
+                      taskHistory.map((task, index) => (
+                        <TaskHistoryItem 
+                          key={task.task_id} 
+                          task={task} 
+                          index={index}
+                          onViewTask={(taskId) => handleViewTask(taskId)}
+                        />
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
 
               {galleryImages.length > 0 && (
                 <ImageGallery images={galleryImages} title="Generated Manga Panels" />
@@ -1117,6 +1211,122 @@ const AsyncMangaGenerator = () => {
               )}
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Task History Item Component
+const TaskHistoryItem = ({ task, index, onViewTask }) => {
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case TASK_STATUS.COMPLETED:
+        return <CheckCircle size={16} style={{ color: '#28a745' }} />;
+      case TASK_STATUS.FAILED:
+        return <AlertCircle size={16} style={{ color: '#dc3545' }} />;
+      case TASK_STATUS.CANCELLED:
+        return <X size={16} style={{ color: '#6c757d' }} />;
+      default:
+        return <Clock size={16} style={{ color: '#007bff' }} />;
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case TASK_STATUS.COMPLETED:
+        return '已完成';
+      case TASK_STATUS.FAILED:
+        return '失败';
+      case TASK_STATUS.CANCELLED:
+        return '已取消';
+      case TASK_STATUS.PENDING:
+        return '等待中';
+      case TASK_STATUS.PROCESSING:
+        return '处理中';
+      case TASK_STATUS.SCENE_GENERATION:
+        return '生成场景';
+      case TASK_STATUS.IMAGE_GENERATION:
+        return '生成图片';
+      case TASK_STATUS.PANEL_PROCESSING:
+        return '处理面板';
+      case TASK_STATUS.UPLOADING:
+        return '上传中';
+      default:
+        return status;
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div 
+      className="task-history-item"
+      style={{
+        padding: '15px',
+        borderBottom: '1px solid #e0e0e0',
+        cursor: 'pointer',
+        transition: 'background-color 0.2s',
+        ':hover': { backgroundColor: '#f0f0f0' }
+      }}
+      onClick={() => onViewTask(task.task_id)}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+            {getStatusIcon(task.status)}
+            <span style={{ 
+              marginLeft: '8px', 
+              fontWeight: '500',
+              fontSize: '14px'
+            }}>
+              任务 #{index + 1} - {getStatusText(task.status)}
+            </span>
+            <span style={{ 
+              marginLeft: '10px',
+              fontSize: '12px',
+              color: '#666',
+              backgroundColor: '#e9ecef',
+              padding: '2px 6px',
+              borderRadius: '4px'
+            }}>
+              {task.progress}%
+            </span>
+          </div>
+          
+          <div style={{ 
+            fontSize: '13px', 
+            color: '#666', 
+            marginBottom: '6px',
+            lineHeight: '1.4'
+          }}>
+            {task.story_preview}
+          </div>
+          
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#888',
+            display: 'flex',
+            justifyContent: 'space-between'
+          }}>
+            <span>创建: {formatDate(task.created_at)}</span>
+            {task.completed_at && (
+              <span>完成: {formatDate(task.completed_at)}</span>
+            )}
+          </div>
+        </div>
+        
+        <div style={{ marginLeft: '15px', fontSize: '12px', color: '#666' }}>
+          {task.total_panels} 面板
         </div>
       </div>
     </div>
