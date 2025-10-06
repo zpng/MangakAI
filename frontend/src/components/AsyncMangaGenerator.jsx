@@ -657,13 +657,7 @@ const AsyncMangaGenerator = () => {
             <Upload size={20} />
             File Upload
           </button>
-          <button 
-            className={activeTab === 'regenerate' ? 'active' : ''}
-            onClick={() => handleTabChange('regenerate')}
-          >
-            <RefreshCw size={20} />
-            Regenerate Panels
-          </button>
+
           <button 
             className={activeTab === 'pdf' ? 'active' : ''}
             onClick={() => handleTabChange('pdf')}
@@ -962,87 +956,7 @@ const AsyncMangaGenerator = () => {
             </div>
           )}
 
-          {activeTab === 'regenerate' && (
-            <div className="regenerate-tab">
-              <h3>Select a panel to regenerate with modifications</h3>
-              <p><strong>Note:</strong> You must generate manga first before you can regenerate panels.</p>
-              
-              <div className="regenerate-controls">
-                <div className="panel-selector">
-                  <label>Panel Number to Regenerate</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={panelNumber}
-                    onChange={(e) => setPanelNumber(parseInt(e.target.value))}
-                  />
-                </div>
 
-                <div className="modification-input">
-                  <label>Modification Request</label>
-                  <textarea
-                    value={modificationRequest}
-                    onChange={(e) => setModificationRequest(e.target.value)}
-                    placeholder="Describe how you want to modify this panel..."
-                    rows={4}
-                  />
-                </div>
-
-                <div className="reference-upload">
-                  <label>Reference Image (Optional)</label>
-                  <input
-                    ref={referenceInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleReferenceImageSelect}
-                  />
-                  {referenceImage && (
-                    <div className="reference-preview">
-                      Selected: {referenceImage.name}
-                    </div>
-                  )}
-                </div>
-
-                <div className="replace-option">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={replaceOriginal}
-                      onChange={(e) => setReplaceOriginal(e.target.checked)}
-                    />
-                    Replace original panel in gallery
-                  </label>
-                </div>
-
-                <button 
-                  className="regenerate-btn"
-                  onClick={handleRegeneratePanel}
-                  disabled={!modificationRequest.trim()}
-                >
-                  <RefreshCw size={20} />
-                  Regenerate Panel
-                </button>
-              </div>
-
-              {regenerationStatus && (
-                <div className="status-message">
-                  <p>{regenerationStatus}</p>
-                </div>
-              )}
-
-              {regeneratedImage && (
-                <div className="regenerated-image">
-                  <h3>Regenerated Panel</h3>
-                  <img src={`http://localhost:8000${regeneratedImage}`} alt="Regenerated Panel" />
-                </div>
-              )}
-
-              {galleryImages.length > 0 && (
-                <ImageGallery images={galleryImages} title="Updated Main Gallery" />
-              )}
-            </div>
-          )}
 
           {activeTab === 'pdf' && (
             <div className="pdf-tab">
