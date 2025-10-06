@@ -225,7 +225,7 @@ const AsyncMangaGenerator = () => {
     } catch (error) {
       console.error('Failed to connect WebSocket:', error);
       setWsConnected(false);
-      setError('无法建立实时连接，将使用轮询方式获取进度');
+      setError('');
     }
   };
 
@@ -639,17 +639,7 @@ const AsyncMangaGenerator = () => {
       </header>
 
       <div className="tab-container">
-        {/* Connection Status */}
-        <div className="connection-status" style={{ padding: '15px', borderBottom: '1px solid #eee' }}>
-          <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
-            wsConnected ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-          }`}>
-            <div className={`w-2 h-2 rounded-full mr-2 ${
-              wsConnected ? 'bg-green-500' : 'bg-yellow-500'
-            }`} />
-            {wsConnected ? '实时连接已建立' : '使用轮询模式'}
-          </div>
-        </div>
+
 
         {/* Tab Buttons */}
         <div className="tab-buttons">
@@ -1100,57 +1090,39 @@ const AsyncMangaGenerator = () => {
               {/* Task History Section */}
               <div className="task-history-section" style={{ marginTop: '30px' }}>
                 <div className="task-history-header" style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
                   marginBottom: '15px'
                 }}>
                   <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>任务历史</h3>
-                  <button
-                    onClick={() => setShowHistory(!showHistory)}
-                    style={{
-                      padding: '6px 12px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid #ddd',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    {showHistory ? '隐藏' : '显示'} ({taskHistory.length})
-                  </button>
                 </div>
 
-                {showHistory && (
-                  <div className="task-history-list" style={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    backgroundColor: '#fafafa',
-                    maxHeight: '400px',
-                    overflowY: 'auto'
-                  }}>
-                    {taskHistory.length === 0 ? (
-                      <div style={{ 
-                        padding: '20px', 
-                        textAlign: 'center', 
-                        color: '#666',
-                        fontSize: '14px'
-                      }}>
-                        暂无任务历史
-                      </div>
-                    ) : (
-                      taskHistory.map((task, index) => (
-                        <TaskHistoryItem 
-                          key={task.task_id} 
-                          task={task} 
-                          index={index}
-                          onViewTask={(taskId) => handleViewTask(taskId)}
-                          onCreatePDF={(taskId) => handleCreatePDF(taskId)}
-                        />
-                      ))
-                    )}
-                  </div>
-                )}
+                <div className="task-history-list" style={{
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '8px',
+                  backgroundColor: '#fafafa',
+                  maxHeight: '400px',
+                  overflowY: 'auto'
+                }}>
+                  {taskHistory.length === 0 ? (
+                    <div style={{ 
+                      padding: '20px', 
+                      textAlign: 'center', 
+                      color: '#666',
+                      fontSize: '14px'
+                    }}>
+                      暂无任务历史
+                    </div>
+                  ) : (
+                    taskHistory.map((task, index) => (
+                      <TaskHistoryItem 
+                        key={task.task_id} 
+                        task={task} 
+                        index={index}
+                        onViewTask={(taskId) => handleViewTask(taskId)}
+                        onCreatePDF={(taskId) => handleCreatePDF(taskId)}
+                      />
+                    ))
+                  )}
+                </div>
               </div>
 
               {/* Current Task Progress Section */}
