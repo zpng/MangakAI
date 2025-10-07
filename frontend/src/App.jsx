@@ -489,7 +489,7 @@ function App() {
                   <input
                     type="range"
                     min="1"
-                    max="10"
+                    max="100"
                     value={numScenes}
                     onChange={(e) => setNumScenes(parseInt(e.target.value))}
                   />
@@ -601,7 +601,7 @@ function App() {
                 <input
                   type="range"
                   min="1"
-                  max="10"
+                  max="100"
                   value={numScenes}
                   onChange={(e) => setNumScenes(parseInt(e.target.value))}
                 />
@@ -684,7 +684,7 @@ function App() {
                   <input
                     type="number"
                     min="1"
-                    max="10"
+                    max="100"
                     value={panelNumber}
                     onChange={(e) => setPanelNumber(parseInt(e.target.value))}
                   />

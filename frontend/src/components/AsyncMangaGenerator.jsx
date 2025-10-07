@@ -768,7 +768,7 @@ const AsyncMangaGenerator = () => {
                   <input
                     type="range"
                     min="1"
-                    max="10"
+                    max="100"
                     value={numScenes}
                     onChange={(e) => setNumScenes(parseInt(e.target.value))}
                     disabled={isGenerating}
@@ -909,7 +909,7 @@ const AsyncMangaGenerator = () => {
                 <input
                   type="range"
                   min="1"
-                  max="10"
+                  max="100"
                   value={numScenes}
                   onChange={(e) => setNumScenes(parseInt(e.target.value))}
                 />

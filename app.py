@@ -134,7 +134,7 @@ def create_gradio_interface():
                     with gr.Column(scale=1):
                         num_scenes_text = gr.Slider(
                             minimum=1,
-                            maximum=10,
+                            maximum=100,
                             value=5,
                             step=1,
                             label="Number of Scenes"
@@ -227,7 +227,7 @@ def create_gradio_interface():
                     with gr.Column(scale=1):
                         num_scenes_file = gr.Slider(
                             minimum=1,
-                            maximum=10,
+                            maximum=100,
                             value=5,
                             step=1,
                             label="Number of Scenes"
@@ -311,7 +311,7 @@ def create_gradio_interface():
                         label="Panel Number to Regenerate",
                         value=1,
                         minimum=1,
-                        maximum=10,
+                        maximum=100,
                         precision=0
                     )
 
