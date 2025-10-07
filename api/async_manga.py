@@ -250,9 +250,12 @@ async def regenerate_panel(
     Regenerate a specific panel
     """
     try:
+        logger.info(f"Starting panel regeneration for task {task_id}, panel {panel_number}")
+        
         # Validate task exists
         task = db.query(MangaTask).filter(MangaTask.id == task_id).first()
         if not task:
+            logger.error(f"Task {task_id} not found")
             raise HTTPException(status_code=404, detail="任务不存在")
         
         # Find the original panel (only non-regenerated panels can be selected for regeneration)
@@ -262,10 +265,41 @@ async def regenerate_panel(
             MangaPanel.is_regenerated == False
         ).first()
         if not original_panel:
+            logger.error(f"Original panel not found for task {task_id}, panel {panel_number}")
             raise HTTPException(status_code=404, detail="原始面板不存在")
         
-        # Handle reference image if provided
-        reference_image_path = None
+        # Find the latest regenerated version of this panel (if any exists)
+        latest_regenerated_panel = db.query(MangaPanel).filter(
+            MangaPanel.task_id == task_id,
+            MangaPanel.panel_number == panel_number,
+            MangaPanel.is_regenerated == True,
+            MangaPanel.status == 'COMPLETED'
+        ).order_by(MangaPanel.created_at.desc()).first()
+        
+        # Determine which panel image to use as reference for style consistency
+        reference_panel_for_style = latest_regenerated_panel if latest_regenerated_panel else original_panel
+        reference_panel_image_path = None
+        
+        if reference_panel_for_style.image_path and os.path.exists(reference_panel_for_style.image_path):
+            reference_panel_image_path = reference_panel_for_style.image_path
+            logger.info(f"Using panel image as style reference: {reference_panel_image_path} (from {'regenerated' if latest_regenerated_panel else 'original'} panel)")
+        elif reference_panel_for_style.image_url:
+            # Try to convert image_url to local path if it's a static URL
+            if reference_panel_for_style.image_url.startswith('/static/'):
+                local_path = reference_panel_for_style.image_url.replace('/static/', 'data/')
+                if os.path.exists(local_path):
+                    reference_panel_image_path = local_path
+                    logger.info(f"Using converted static URL as style reference: {local_path}")
+                else:
+                    logger.warning(f"Local file not found for static URL: {local_path}")
+            else:
+                logger.info(f"Panel has remote image URL: {reference_panel_for_style.image_url}")
+        
+        if not reference_panel_image_path:
+            logger.warning(f"No accessible image found for style reference from panel {reference_panel_for_style.id}")
+        
+        # Handle user-provided reference image if provided
+        user_reference_image_path = None
         if reference_image:
             # Save reference image temporarily
             import tempfile
@@ -273,7 +307,8 @@ async def regenerate_panel(
             
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
                 shutil.copyfileobj(reference_image.file, tmp_file)
-                reference_image_path = tmp_file.name
+                user_reference_image_path = tmp_file.name
+            logger.info(f"User provided reference image saved to: {user_reference_image_path}")
         
         # Calculate the next version number for this panel_number
         max_version = db.query(MangaPanel).filter(
@@ -282,6 +317,7 @@ async def regenerate_panel(
         ).order_by(MangaPanel.version.desc()).first()
         
         next_version = (max_version.version + 1) if max_version else 1
+        logger.info(f"Creating new panel version {next_version} for panel {panel_number}")
         
         # Create new panel record for regenerated version
         new_panel = MangaPanel(
@@ -298,16 +334,19 @@ async def regenerate_panel(
         db.commit()
         db.refresh(new_panel)
         
-        # Start regeneration task with the new panel ID
+        logger.info(f"Created new panel record with ID: {new_panel.id}")
+        
+        # Start regeneration task with the new panel ID and both reference images
         regenerate_panel_task.delay(
-            new_panel.id,  # Use new panel ID instead of task_id + panel_number
+            str(new_panel.id),  # Use new panel ID instead of task_id + panel_number
             modification_request,
-            reference_image_path
+            user_reference_image_path,  # User-provided reference image
+            reference_panel_image_path  # Panel image for style consistency
         )
         
-        logger.info(f"Started panel regeneration for task {task_id}, panel {panel_number}, new panel ID: {new_panel.id}")
+        logger.info(f"Started regeneration task for panel {new_panel.id} with user_ref: {user_reference_image_path}, style_ref: {reference_panel_image_path}")
         
-        return {"message": f"面板 {panel_number} 重新生成任务已启动", "regenerated_panel_id": new_panel.id}
+        return {"message": f"面板 {panel_number} 重新生成任务已启动", "regenerated_panel_id": str(new_panel.id)}
     
     except HTTPException:
         raise

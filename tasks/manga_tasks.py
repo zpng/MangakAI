@@ -187,15 +187,25 @@ def generate_manga_task(self, task_id: str, story_text: str, parameters: dict):
             raise
 
 @celery_app.task(bind=True, name='tasks.regenerate_panel_task')
-def regenerate_panel_task(self, regenerated_panel_id: str, modification_request: str, reference_image_path: str = None):
+def regenerate_panel_task(self, regenerated_panel_id: str, modification_request: str, user_reference_image_path: str = None, panel_reference_image_path: str = None):
     """
     Asynchronous panel regeneration task
+    Args:
+        regenerated_panel_id: ID of the new panel record to be regenerated
+        modification_request: User's modification request
+        user_reference_image_path: Optional user-provided reference image path
+        panel_reference_image_path: Path to the latest panel image for style consistency
     """
     with get_db_session() as db:
         try:
+            logger.info(f"Starting regeneration task for panel {regenerated_panel_id}")
+            logger.info(f"User reference image: {user_reference_image_path}")
+            logger.info(f"Panel reference image: {panel_reference_image_path}")
+            
             # Get the regenerated panel record
             regenerated_panel = db.query(MangaPanel).filter(MangaPanel.id == regenerated_panel_id).first()
             if not regenerated_panel:
+                logger.error(f"Regenerated panel {regenerated_panel_id} not found")
                 raise ValueError("Regenerated panel not found")
             
             # Get the original panel and task
@@ -203,14 +213,17 @@ def regenerate_panel_task(self, regenerated_panel_id: str, modification_request:
             task = db.query(MangaTask).filter(MangaTask.id == regenerated_panel.task_id).first()
             
             if not original_panel or not task:
+                logger.error(f"Original panel or task not found for regenerated panel {regenerated_panel_id}")
                 raise ValueError("Original panel or task not found")
+            
+            logger.info(f"Processing regeneration for task {task.id}, panel {regenerated_panel.panel_number}")
             
             # Update regenerated panel status
             regenerated_panel.status = PanelStatus.REGENERATING
             db.commit()
             
             send_progress_update(task.user_session_id, {
-                'task_id': task.id,
+                'task_id': str(task.id),
                 'status': 'REGENERATING',
                 'panel_number': regenerated_panel.panel_number,
                 'regenerated_panel_id': regenerated_panel_id,
@@ -242,29 +255,44 @@ STYLE CONSISTENCY NOTE: This panel is part of an existing manga series. Please e
                 user_preferences=user_preferences
             )
             
+            logger.info(f"Generated modified scene prompt for panel {regenerated_panel.panel_number}")
+            
             # Generate new image with unique path
             output_path = f"/tmp/panel_{task.id}_{regenerated_panel.panel_number}_regenerated_{regenerated_panel_id}.png"
             
-            # Use reference image if provided, with enhanced style consistency
-            if reference_image_path and os.path.exists(reference_image_path):
-                # Add original panel as style reference if available
-                original_panel_path = None
-                if original_panel.image_path and os.path.exists(original_panel.image_path):
-                    original_panel_path = original_panel.image_path
-                
+            # Determine which reference image to use for generation
+            # Priority: user_reference_image_path > panel_reference_image_path
+            primary_reference_image = user_reference_image_path if user_reference_image_path and os.path.exists(user_reference_image_path) else None
+            style_reference_image = panel_reference_image_path if panel_reference_image_path and os.path.exists(panel_reference_image_path) else None
+            
+            logger.info(f"Using primary reference: {primary_reference_image}")
+            logger.info(f"Using style reference: {style_reference_image}")
+            
+            # Generate image with appropriate reference handling
+            if primary_reference_image:
+                logger.info(f"Generating image with user-provided reference: {primary_reference_image}")
                 response, saved_image = generator.generate_image_with_chat_and_reference(
-                    modified_scene, output_path, chat, reference_image_path
+                    modified_scene, output_path, chat, primary_reference_image
+                )
+            elif style_reference_image:
+                logger.info(f"Generating image with panel style reference: {style_reference_image}")
+                response, saved_image = generator.generate_image_with_chat_and_reference(
+                    modified_scene, output_path, chat, style_reference_image
                 )
             else:
+                logger.info("Generating image without reference (text-only)")
                 response, saved_image = generator.generate_image_with_chat(
                     modified_scene, output_path, chat
                 )
             
+            logger.info(f"Image generation completed, output saved to: {output_path}")
+            
             # Upload to cloud storage with unique path
-            cloud_url = upload_to_cloud_storage(
-                output_path, 
-                f"tasks/{task.id}/panel_{regenerated_panel.panel_number}_regenerated_{regenerated_panel_id}.webp"
-            )
+            cloud_storage_path = f"tasks/{task.id}/panel_{regenerated_panel.panel_number}_regenerated_{regenerated_panel_id}.webp"
+            logger.info(f"Uploading to cloud storage: {cloud_storage_path}")
+            
+            cloud_url = upload_to_cloud_storage(output_path, cloud_storage_path)
+            logger.info(f"Cloud upload completed, URL: {cloud_url}")
             
             # Update regenerated panel record
             regenerated_panel.image_url = cloud_url
@@ -272,8 +300,10 @@ STYLE CONSISTENCY NOTE: This panel is part of an existing manga series. Please e
             regenerated_panel.status = PanelStatus.COMPLETED
             db.commit()
             
+            logger.info(f"Panel regeneration completed successfully for panel {regenerated_panel_id}")
+            
             send_progress_update(task.user_session_id, {
-                'task_id': task.id,
+                'task_id': str(task.id),
                 'status': 'PANEL_REGENERATED',
                 'panel_number': regenerated_panel.panel_number,
                 'regenerated_panel_id': regenerated_panel_id,
@@ -284,8 +314,10 @@ STYLE CONSISTENCY NOTE: This panel is part of an existing manga series. Please e
             # Clean up temporary files
             if os.path.exists(output_path):
                 os.remove(output_path)
-            if reference_image_path and os.path.exists(reference_image_path):
-                os.remove(reference_image_path)
+                logger.info(f"Cleaned up temporary output file: {output_path}")
+            if user_reference_image_path and os.path.exists(user_reference_image_path):
+                os.remove(user_reference_image_path)
+                logger.info(f"Cleaned up user reference image: {user_reference_image_path}")
             
             return {
                 'regenerated_panel_id': regenerated_panel_id,
@@ -295,16 +327,18 @@ STYLE CONSISTENCY NOTE: This panel is part of an existing manga series. Please e
             }
             
         except Exception as e:
-            logger.error(f"Panel regeneration failed: {str(e)}")
+            logger.error(f"Panel regeneration failed for panel {regenerated_panel_id}: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             
             if 'regenerated_panel' in locals() and regenerated_panel:
                 regenerated_panel.status = PanelStatus.FAILED
                 db.commit()
+                logger.info(f"Updated panel {regenerated_panel_id} status to FAILED")
             
             # Get task info for progress update
             if 'task' in locals() and task:
                 send_progress_update(task.user_session_id, {
-                    'task_id': task.id,
+                    'task_id': str(task.id),
                     'status': 'REGENERATION_FAILED',
                     'panel_number': regenerated_panel.panel_number if 'regenerated_panel' in locals() else 0,
                     'regenerated_panel_id': regenerated_panel_id,
@@ -312,8 +346,9 @@ STYLE CONSISTENCY NOTE: This panel is part of an existing manga series. Please e
                 })
             
             # Clean up temporary files on error
-            if reference_image_path and os.path.exists(reference_image_path):
-                os.remove(reference_image_path)
+            if user_reference_image_path and os.path.exists(user_reference_image_path):
+                os.remove(user_reference_image_path)
+                logger.info(f"Cleaned up user reference image on error: {user_reference_image_path}")
             
             raise
 
