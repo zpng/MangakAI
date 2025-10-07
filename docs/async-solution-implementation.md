@@ -204,8 +204,8 @@ celery_app.conf.update(
     worker_max_tasks_per_child=1000,
     
     # 任务超时
-    task_soft_time_limit=300,  # 5分钟软超时
-    task_time_limit=600,       # 10分钟硬超时
+    task_soft_time_limit=3600,  # 1小时软超时
+    task_time_limit=3600,       # 1小时硬超时
     
     # 重试配置
     task_default_retry_delay=60,

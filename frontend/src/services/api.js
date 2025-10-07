@@ -117,7 +117,7 @@ export const cancelTask = async (taskId) => {
 // Generate manga (legacy sync method)
 export const generateManga = async (data) => {
   return apiClient.post('/api/generate-manga', data, {
-    timeout: 300000, // 5 minutes timeout for sync generation
+    timeout: 3600000, // 1 hour timeout for sync generation
   });
 };
 
@@ -136,7 +136,7 @@ export const generateMangaFromFile = async (file, options = {}) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
-    timeout: 300000, // 5 minutes timeout
+    timeout: 3600000, // 1 hour timeout
   });
 };
 
